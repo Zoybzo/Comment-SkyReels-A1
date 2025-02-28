@@ -93,7 +93,7 @@ if __name__ == "__main__":
     parser.add_argument('--image_path', type=str, default="assets/ref_images/1.png", help='Path to the source image.')
     parser.add_argument('--driving_video_path', type=str, default="assets/driving_video/1.mp4", help='Path to the driving video.')
     parser.add_argument('--output_path', type=str, default="outputs", help='Path to save the output video.')
-    parser.add_argument('--prefix', type=str, default="./../../Models/", help='The path to load the model')
+    parser.add_argument('--prefix', type=str, default="./../Models/", help='The path to load the model')
     args = parser.parse_args()
 
     guidance_scale = 3.0
@@ -104,12 +104,12 @@ if __name__ == "__main__":
     weight_dtype = torch.bfloat16
     save_path = args.output_path
     generator = torch.Generator(device="cuda").manual_seed(seed)
-    prefix = args.prefix
-    model_name = os.path.join(prefix, "SkyReels-A1-5B/")
-    siglip_name = os.path.join(prefix, "/SkyReels-A1-5B/siglip-so400m-patch14-384")
+    prefix = args.prefx # Need change many path; stay here and don't use it
+    model_name = "pretrained_models/SkyReels-A1-5B/"
+    siglip_name = "pretrained_models/SkyReels-A1-5B/siglip-so400m-patch14-384"
 
     lmk_extractor = LMKExtractor()
-    processor = FaceAnimationProcessor(checkpoint=os.path.join(prefix, '/smirk/SMIRK_em1.pt'))
+    processor = FaceAnimationProcessor(checkpoint='pretrained_models/smirk/SMIRK_em1.pt')
     vis = FaceMeshVisualizer2d(forehead_edge=False, draw_head=False, draw_iris=False,)
     face_helper = FaceRestoreHelper(upscale_factor=1, face_size=512, crop_ratio=(1, 1), det_model='retinaface_resnet50', save_ext='png', device="cuda",) 
 
