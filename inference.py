@@ -104,7 +104,7 @@ if __name__ == "__main__":
     weight_dtype = torch.bfloat16
     save_path = args.output_path
     generator = torch.Generator(device="cuda").manual_seed(seed)
-    prefix = args.prefx # Need change many path; stay here and don't use it
+    prefix = args.prefix # Need change many path; stay here and don't use it
     model_name = "pretrained_models/SkyReels-A1-5B/"
     siglip_name = "pretrained_models/SkyReels-A1-5B/siglip-so400m-patch14-384"
 
