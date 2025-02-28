@@ -35,11 +35,15 @@ class FaceAnimationProcessor:
         self.smirk_encoder.eval()
 
     def face_crop(self, image):
+        """
+        根据人脸位置对帧进行crop
+        """
         height, width, _ = image.shape
-        faces = self.app.get(image)
-        bbox = faces[0]['bbox']
-        w = bbox[2] - bbox[0]
-        h = bbox[3] - bbox[1]
+        faces = self.app.get(image) # 人脸检测，返回2D box
+        bbox = faces[0]['bbox'] # 这里的0意思是，视频中可能有多个人脸，但是会按照第一个人脸进行crop; 模型本身只能处理单人视频
+        # w and h of box
+        w = bbox[2] - bbox[0] # 右上-左上
+        h = bbox[3] - bbox[1] # 
         x1 = max(0, int(bbox[0] - w/2))
         x2 = min(width - 1, int(bbox[2] + w/2))
         w_new = x2 - x1
@@ -53,18 +57,30 @@ class FaceAnimationProcessor:
         return image_crop, x1, y1
 
     def crop_and_resize(self, image, height, width):
-        image = np.array(image)
+        """
+        目标是等比例缩放图片，同时保证图片不失真
+        height, width: default size, 480, 720
+        h:w ratio: 2:3
+        """
+        image = np.array(image) # height, width, channels
         image_height, image_width, _ = image.shape
-        if image_height / image_width < height / width:
-            croped_width = int(image_height / height * width)
-            left = (image_width - croped_width) // 2
+        # compare the ratio with 2:3
+        # Fix the height
+        if image_height / image_width < height / width: # the ratio < 2:3
+            # crop the width
+            croped_width = int(image_height / height * width)  
+            # 计算目标宽度: target_width = image_height / height * width
+            left = (image_width - croped_width) // 2 # 左右两边裁剪
             image = image[:, left: left+croped_width]
         else:
+            # pad the width
+            # 为什么不用 image_height / height * width ?
+            # 未知。或许是防止溢出，当image_height >> height时，可能出现溢出问题
             pad = int((((width / height) * image_height) - image_width) / 2.)
             padded_image = np.zeros((image_height, image_width + pad * 2, 3), dtype=np.uint8)
-            padded_image[:, pad:pad+image_width] = image
+            padded_image[:, pad:pad+image_width] = image # 使用image填充中间区域
             image = padded_image
-        return Image.fromarray(image).resize((width, height))
+        return Image.fromarray(image).resize((width, height)) # resize # 等比例缩放图片
 
     def rodrigues_to_matrix(self, pose_params):
         theta = torch.norm(pose_params, dim=-1, keepdim=True)

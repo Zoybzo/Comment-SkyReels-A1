@@ -45,23 +45,28 @@ def write_mp4(video_path, samples, fps=12, audio_bitrate="192k"):
                          ffmpeg_params=["-crf", "18", "-preset", "slow"])
 
 def parse_video(driving_video_path, max_frame_num):
-    vr = VideoReader(driving_video_path)
-    fps = vr.get_avg_fps()
-    video_length = len(vr)
+    """
+    处理视频帧数，达到目标帧数
+    """
+    vr = VideoReader(driving_video_path) # decord.NDarray，类似于numpy
+    fps = vr.get_avg_fps() # 获取视频帧率
+    video_length = len(vr) # 视频的总帧数
 
-    duration = video_length / fps 
-    target_times = np.arange(0, duration, 1/12)
-    frame_indices = (target_times * fps).astype(np.int32)
+    duration = video_length / fps # 时长:秒
+    target_times = np.arange(0, duration, 1/12) # 每秒提取12帧，获取每一帧的时间点
+    frame_indices = (target_times * fps).astype(np.int32) # 根据时间点获取帧的ID
 
     frame_indices = frame_indices[frame_indices < video_length]
-    control_frames = vr.get_batch(frame_indices).asnumpy()[:(max_frame_num-1)]
+    control_frames = vr.get_batch(frame_indices).asnumpy()[:(max_frame_num-1)] # 根据帧索引提取帧,最多max-1个帧
+    # 为什么max-1？
+    # max-1是为了之后可以复制一次第一帧
     
-    out_frames = len(control_frames) - 1
-    if  len(control_frames) < max_frame_num - 1:
+    out_frames = len(control_frames) - 1 # 实际帧数
+    if  len(control_frames) < max_frame_num - 1: # 帧数不足
         video_lenght_add =  max_frame_num - len(control_frames) - 1
-        control_frames = np.concatenate(([control_frames[0]]*2, control_frames[1:len(control_frames)-1], [control_frames[-1]] * video_lenght_add), axis=0)
+        control_frames = np.concatenate(([control_frames[0]]*2, control_frames[1:len(control_frames)-1], [control_frames[-1]] * video_lenght_add), axis=0) # 帧数不足时，复制最后一帧补全
     else:
-        control_frames = np.concatenate(([control_frames[0]]*2, control_frames[1:len(control_frames)-1]), axis=0)
+        control_frames = np.concatenate(([control_frames[0]]*2, control_frames[1:len(control_frames)-1]), axis=0) 
     
     return control_frames
 
@@ -147,6 +152,7 @@ if __name__ == "__main__":
     pipe.enable_model_cpu_offload()
     pipe.vae.enable_tiling()
 
+    # 处理视频帧数
     control_frames = parse_video(args.driving_video_path, max_frame_num)
     
     # driving video crop face
@@ -155,8 +161,9 @@ if __name__ == "__main__":
         frame, _, _ = processor.face_crop(control_frame)
         driving_video_crop.append(frame)
 
-    image = load_image(image=args.image_path)
-    image = processor.crop_and_resize(image, sample_size[0], sample_size[1])
+    image = load_image(image=args.image_path) 
+    image = processor.crop_and_resize(image, sample_size[0], sample_size[1]) 
+    # Shape: [480,720,3]
 
     # ref image crop face
     ref_image, x1, y1 = processor.face_crop(np.array(image))
