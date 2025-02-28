@@ -109,7 +109,7 @@ if __name__ == "__main__":
     siglip_name = os.path.join(prefix, "/SkyReels-A1-5B/siglip-so400m-patch14-384")
 
     lmk_extractor = LMKExtractor()
-    processor = FaceAnimationProcessor(checkpoint=os.path.join(prefix, '/smirk/SMIRK_em1.pt')
+    processor = FaceAnimationProcessor(checkpoint=os.path.join(prefix, '/smirk/SMIRK_em1.pt'))
     vis = FaceMeshVisualizer2d(forehead_edge=False, draw_head=False, draw_iris=False,)
     face_helper = FaceRestoreHelper(upscale_factor=1, face_size=512, crop_ratio=(1, 1), det_model='retinaface_resnet50', save_ext='png', device="cuda",) 
 
