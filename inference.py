@@ -213,7 +213,7 @@ if __name__ == "__main__":
     face_h, face_w, _, = ref_image.shape
     source_image = ref_image  # Shape 不固定，根据图片中人脸的大小而定
     driving_video = driving_video_crop
-    # INFO: 使用 FLAME+mediapipe 预处理视频帧；处理后的 frame 的大小与 ref_image 一致
+    # INFO: 使用 FLAME+mediapipe 预处理视频帧，得到关键点；处理后的 frame 的大小与 ref_image 一致
     out_frames = processor.preprocess_lmk3d(source_image,
                                             driving_video)
     loguru_logger.log('MODEL_DEBUG', f"Out Frames: {len(out_frames)}")
@@ -226,7 +226,7 @@ if __name__ == "__main__":
     Image.fromarray(out_frames[0]).save('assets/tmp/out_frames_0.jpg')
     Image.fromarray(out_frames[2]).save('assets/tmp/out_frames_2.jpg')
 
-    # 生成 48 帧的运动，将处理后的 图片 信息放入到 48 帧中
+    # INFO: 生成 48 帧的运动，将处理后的 关键点 信息放入到 48 帧中
     loguru_logger.info("Rescale Motions...")
     rescale_motions = np.zeros_like(image)[np.newaxis, :].repeat(48,
                                                                  axis=0)
@@ -243,12 +243,16 @@ if __name__ == "__main__":
     Image.fromarray(rescale_motions[0]).save("assets/tmp/rescale_motions_0.jpg")
     Image.fromarray(rescale_motions[2]).save("assets/tmp/rescale_motions_2.jpg")
 
+    # 3D 信息
     ref_image = cv2.resize(ref_image, (512, 512))
-    ref_lmk = lmk_extractor(ref_image[:, :, ::-1])
-
+    ref_lmk = lmk_extractor(ref_image[:, :, ::-1])  # RGB -> BGR
     ref_img = vis.draw_landmarks_v3((512, 512), (face_w, face_h),
                                     ref_lmk['lmks'].astype(np.float32),
                                     normed=True)
+    # show ref_img
+    loguru_logger.log('MODEL_DEBUG', f"Dtype of ref_img: {ref_image.dtype}")
+    Image.fromarray(ref_img).save("assets/tmp/ref_img.jpg")
+
     # 加上第一帧
     first_motion = np.zeros_like(np.array(image))
     first_motion[y1:y1 + face_h, x1:x1 + face_w] = ref_img
