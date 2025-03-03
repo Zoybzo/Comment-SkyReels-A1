@@ -179,7 +179,8 @@ if __name__ == "__main__":
     loguru_logger.info("Parse Video...")
     control_frames = parse_video(args.driving_video_path, max_frame_num)
     loguru_logger.log('MODEL_DEBUG', f"Frames: {len(control_frames)}")
-    loguru_logger.log('MODEL_DEBUG', f"Shape: {control_frames[0].shape}")
+    loguru_logger.log('MODEL_DEBUG', f"Shape 0: {control_frames[0].shape}")
+    loguru_logger.log('MODEL_DEBUG', f'Shape 2: {control_frames[2].shape}')
 
     loguru_logger.info('Crop Driving video...')
     # driving video crop face
@@ -188,7 +189,10 @@ if __name__ == "__main__":
         frame, _, _ = processor.face_crop(control_frame)  # 这里得到的每一帧的大小并不相同
         driving_video_crop.append(frame)
     loguru_logger.log('MODEL_DEBUG', f"Frames: {len(driving_video_crop)}")
-    loguru_logger.log('MODEL_DEBUG', f'Shape: {driving_video_crop[0].shape}')
+    loguru_logger.log('MODEL_DEBUG', f'Shape 0: {driving_video_crop[0].shape}')
+    loguru_logger.log('MODEL_DEBUG', f'Shape 2: {driving_video_crop[2].shape}')
+    loguru_logger.log('MODEL_DEBUG',
+                      f'Shape -1: {driving_video_crop[-1].shape}')
 
     image = load_image(image=args.image_path)
     image = processor.crop_and_resize(image, sample_size[0], sample_size[1])
