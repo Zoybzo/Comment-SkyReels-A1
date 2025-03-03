@@ -73,7 +73,9 @@ def write_mp4(video_path, samples, fps=12, audio_bitrate="192k"):
 
 def parse_video(driving_video_path, max_frame_num):
     """
-    处理视频帧数，达到目标帧数；复制第一帧；帧数不足时复制最后一帧，过长则截断
+    处理视频帧数，最终返回 max-1 帧；
+    1. 复制第一帧；
+    2. 帧数不足时复制最后一帧，过长则截断
     """
     vr = VideoReader(driving_video_path)  # decord.NDarray，类似于numpy
     fps = vr.get_avg_fps()  # 获取视频帧率
@@ -209,23 +211,36 @@ if __name__ == "__main__":
     ref_image, x1, y1 = processor.face_crop(np.array(image))
     loguru_logger.log('MODEL_DEBUG', f'Face Crop Image: {ref_image.shape}')
     face_h, face_w, _, = ref_image.shape
-    source_image = ref_image  # Shape 不固定，根据图片中人脸的位置而定
+    source_image = ref_image  # Shape 不固定，根据图片中人脸的大小而定
     driving_video = driving_video_crop
-    # INFO: 使用 FLAME+mediapipe 处理 2D 图片，得到 3D 信息
+    # INFO: 使用 FLAME+mediapipe 处理 2D 视频帧，得到 3D 信息；处理后的 frame 的大小与 ref_image 一致
     out_frames = processor.preprocess_lmk3d(source_image,
                                             driving_video)
     loguru_logger.log('MODEL_DEBUG', f"Out Frames: {len(out_frames)}")
     loguru_logger.log('MODEL_DEBUG', f"Out Frames 0: {out_frames[0].shape}")
     loguru_logger.log('MODEL_DEBUG', f"Out Frames 2: {out_frames[2].shape}")
     loguru_logger.log('MODEL_DEBUG', f"Out Frames -1: {out_frames[-1].shape}")
+    assert out_frames[0].shape == ref_image.shape
+    assert out_frames[2].shape == ref_image.shape
+    # save out_frames[0] as a image
+    cv2.imwrite("assets/tmp/out_frames_0.png", out_frames[0])
+    cv2.imwrite("assets/tmp/out_frames_2.png", out_frames[2])
 
+    # 生成 48 帧的运动，将处理后的 3D 信息放入到 48 帧中
     rescale_motions = np.zeros_like(image)[np.newaxis, :].repeat(48,
-                                                                 axis=0)  #
-    # Shape: [new(48), bs, ch, h, w]
+                                                                 axis=0)
+    # Shape: [new(48), h, w, ch]
     loguru_logger.log('MODEL_DEBUG',
                       f"Rescale Motions: {rescale_motions.shape}")
     for ii in range(rescale_motions.shape[0]):
         rescale_motions[ii][y1:y1 + face_h, x1:x1 + face_w] = out_frames[ii]
+    loguru_logger.log('MODEL_DEBUG',
+                      f"Rescale Motions 0: {rescale_motions[0].shape}")
+    loguru_logger.log('MODEL_DEBUG',
+                      f"Rescale Motions 2: {rescale_motions[2].shape}")
+    # save rescale_motions[0] as a image
+    cv2.imwrite("assets/tmp/rescale_motions_0.png", rescale_motions[0])
+    cv2.imwrite("assets/tmp/rescale_motions_2.png", rescale_motions[2])
     ref_image = cv2.resize(ref_image, (512, 512))
     ref_lmk = lmk_extractor(ref_image[:, :, ::-1])
 
