@@ -243,7 +243,7 @@ if __name__ == "__main__":
     Image.fromarray(rescale_motions[0]).save("assets/tmp/rescale_motions_0.jpg")
     Image.fromarray(rescale_motions[2]).save("assets/tmp/rescale_motions_2.jpg")
 
-    # 3D 信息
+    # 3D 信息 ? 得到的图片还是关键点
     ref_image = cv2.resize(ref_image, (512, 512))
     ref_lmk = lmk_extractor(ref_image[:, :, ::-1])  # RGB -> BGR
     ref_img = vis.draw_landmarks_v3((512, 512), (face_w, face_h),
@@ -256,25 +256,32 @@ if __name__ == "__main__":
     # 加上第一帧
     first_motion = np.zeros_like(np.array(image))
     first_motion[y1:y1 + face_h, x1:x1 + face_w] = ref_img
-    first_motion = first_motion[np.newaxis, :]
+    first_motion = first_motion[np.newaxis, :]  # Shape: [h, w, ch]
 
+    # Ref 作为第一帧在最前面，现在是 49 帧
     motions = np.concatenate([first_motion, rescale_motions])
     input_video = motions[:max_frame_num]
+    loguru_logger.log('MODEL_DEBUG', f"len(input_video): {len(input_video)}")
+    loguru_logger.log('MODEL_DEBUG', f"Shape input_video: {input_video.shape}")
 
+    # 读取图像并检测人脸
     face_helper.clean_all()
-    face_helper.read_image(np.array(image)[:, :, ::-1])  # 反转后3个通道
-    face_helper.get_face_landmarks_5(only_center_face=True)
-    face_helper.align_warp_face()
-    align_face = face_helper.cropped_faces[0]
-    image_face = align_face[:, :, ::-1]
+    face_helper.read_image(np.array(image)[:, :, ::-1])  # 反转后3个通道 RGB->BGR
+    # image 为原始图片 crop 和 resize 之后的图片
+    face_helper.get_face_landmarks_5(only_center_face=True)  # 人脸的检测
+    face_helper.align_warp_face()  # 人脸的对齐与变形
+    align_face = face_helper.cropped_faces[0]  # 人脸裁剪
+    image_face = align_face[:, :, ::-1]  # 拿到人脸，反转通道
 
     input_video = input_video[:max_frame_num]
-    motions = np.array(input_video)
+    motions = np.array(input_video)  # Shape: [H, W, C, F] # 之后就没有用了
 
     # [F, H, W, C]
     input_video = torch.from_numpy(np.array(input_video)).permute(
         [3, 0, 1, 2]).unsqueeze(0)
-    input_video = input_video / 255
+    loguru_logger.log('MODEL_DEBUG',
+                      f"Permute Shape input_video: {input_video.shape}")
+    input_video = input_video / 255  # norm
 
     out_samples = []
 
