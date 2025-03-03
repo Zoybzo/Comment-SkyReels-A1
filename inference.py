@@ -181,6 +181,7 @@ if __name__ == "__main__":
     loguru_logger.log('MODEL_DEBUG', f"Frames: {len(control_frames)}")
     loguru_logger.log('MODEL_DEBUG', f"Shape 0: {control_frames[0].shape}")
     loguru_logger.log('MODEL_DEBUG', f'Shape 2: {control_frames[2].shape}')
+    assert control_frames[0].shape == control_frames[2].shape
 
     loguru_logger.info('Crop Driving video...')
     # driving video crop face
@@ -189,23 +190,32 @@ if __name__ == "__main__":
         frame, _, _ = processor.face_crop(control_frame)  # 这里得到的每一帧的大小并不相同
         driving_video_crop.append(frame)
     loguru_logger.log('MODEL_DEBUG', f"Frames: {len(driving_video_crop)}")
+    # 一般情况下 大小不同
     loguru_logger.log('MODEL_DEBUG', f'Shape 0: {driving_video_crop[0].shape}')
     loguru_logger.log('MODEL_DEBUG', f'Shape 2: {driving_video_crop[2].shape}')
     loguru_logger.log('MODEL_DEBUG',
                       f'Shape -1: {driving_video_crop[-1].shape}')
 
     image = load_image(image=args.image_path)
+    loguru_logger.log('MODEL_DEBUG', f"Image: {image.shape}")
     image = processor.crop_and_resize(image, sample_size[0], sample_size[1])
+    loguru_logger.log('MODEL_DEBUG', f"Crop and Resize Image: {image.shape}")
+    assert image.shape == (sample_size[0], sample_size[1], 3)
     # Shape: [sp0, sp1, 3] / [480,720,3]
 
     # ref image crop face
     ref_image, x1, y1 = processor.face_crop(np.array(image))
+    loguru_logger.log('MODEL_DEBUG', f'Face Crop Image: {ref_image.shape}')
     face_h, face_w, _, = ref_image.shape
     source_image = ref_image  # Shape 不固定，根据图片中人脸的位置而定
     driving_video = driving_video_crop
     # INFO: 使用 FLAME+mediapipe 处理 2D 图片，得到 3D 信息
     out_frames = processor.preprocess_lmk3d(source_image,
                                             driving_video)
+    loguru_logger.log('MODEL_DEBUG', f"Out Frames: {len(out_frames)}")
+    loguru_logger.log('MODEL_DEBUG', f"Out Frames 0: {out_frames[0].shape}")
+    loguru_logger.log('MODEL_DEBUG', f"Out Frames 2: {out_frames[2].shape}")
+    loguru_logger.log('MODEL_DEBUG', f"Out Frames -1: {out_frames[-1].shape}")
 
     rescale_motions = np.zeros_like(image)[np.newaxis, :].repeat(48,
                                                                  axis=0)  #
