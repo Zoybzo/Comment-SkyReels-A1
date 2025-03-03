@@ -148,3 +148,22 @@
 2025-03-03 08:48:44.937 | MODEL_DEBUG | __main__:<module>:234 - Rescale Motions: (48, 480, 720, 3)
 2025-03-03 08:48:44.941 | MODEL_DEBUG | __main__:<module>:238 - Rescale Motions 0: (480, 720, 3)
 2025-03-03 08:48:44.941 | MODEL_DEBUG | __main__:<module>:240 - Rescale Motions 2: (480, 720, 3)
+2025-03-03 08:55:02.387 | MODEL_DEBUG | __main__:customize_loguru_logger:47 - This is a model debug message.
+2025-03-03 08:55:06.660 | MODEL_DEBUG | __main__:parse_video:91 - Control Frames: 48
+2025-03-03 08:55:06.691 | MODEL_DEBUG | __main__:<module>:184 - Frames: 48
+2025-03-03 08:55:06.691 | MODEL_DEBUG | __main__:<module>:185 - Shape 0: (720, 1280, 3)
+2025-03-03 08:55:06.691 | MODEL_DEBUG | __main__:<module>:186 - Shape 2: (720, 1280, 3)
+2025-03-03 08:55:08.566 | MODEL_DEBUG | __main__:<module>:195 - Frames: 48
+2025-03-03 08:55:08.566 | MODEL_DEBUG | __main__:<module>:197 - Shape 0: (251, 251, 3)
+2025-03-03 08:55:08.566 | MODEL_DEBUG | __main__:<module>:198 - Shape 2: (250, 250, 3)
+2025-03-03 08:55:08.566 | MODEL_DEBUG | __main__:<module>:199 - Shape -1: (245, 245, 3)
+2025-03-03 08:55:08.593 | MODEL_DEBUG | __main__:<module>:203 - Image: (720, 1280, 3)
+2025-03-03 08:55:08.616 | MODEL_DEBUG | __main__:<module>:205 - Crop and Resize Image: (480, 720, 3)
+2025-03-03 08:55:08.657 | MODEL_DEBUG | __main__:<module>:212 - Face Crop Image: (307, 307, 3)
+2025-03-03 08:55:13.124 | MODEL_DEBUG | __main__:<module>:219 - Out Frames: 48
+2025-03-03 08:55:13.125 | MODEL_DEBUG | __main__:<module>:220 - Out Frames 0: (307, 307, 3)
+2025-03-03 08:55:13.125 | MODEL_DEBUG | __main__:<module>:221 - Out Frames 2: (307, 307, 3)
+2025-03-03 08:55:13.125 | MODEL_DEBUG | __main__:<module>:222 - Out Frames -1: (307, 307, 3)
+2025-03-03 08:55:13.148 | MODEL_DEBUG | __main__:<module>:234 - Rescale Motions: (48, 480, 720, 3)
+2025-03-03 08:55:13.153 | MODEL_DEBUG | __main__:<module>:238 - Rescale Motions 0: (480, 720, 3)
+2025-03-03 08:55:13.153 | MODEL_DEBUG | __main__:<module>:240 - Rescale Motions 2: (480, 720, 3)
