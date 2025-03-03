@@ -226,8 +226,8 @@ if __name__ == "__main__":
     Image.fromarray(out_frames[0]).save('assets/tmp/out_frames_0.jpg')
     Image.fromarray(out_frames[2]).save('assets/tmp/out_frames_2.jpg')
 
-    # INFO: 生成 48 帧的运动，将处理后的 关键点 信息放入到 48 帧中
-    loguru_logger.info("Rescale Motions...")
+    # INFO: 生成 48 帧的运动，将处理后的 关键点 信息放入到 48 帧中; Rescale to Sample Size
+    loguru_logger.info("Rescale Motions to Sample Size...")
     rescale_motions = np.zeros_like(image)[np.newaxis, :].repeat(48,
                                                                  axis=0)
     # Shape: [new(48), h, w, ch]
@@ -254,10 +254,10 @@ if __name__ == "__main__":
     Image.fromarray(ref_img).save("assets/tmp/ref_img.jpg")
 
     # 加上第一帧
+    loguru_logger.info('Add the reference image as the first frame')
     first_motion = np.zeros_like(np.array(image))
     first_motion[y1:y1 + face_h, x1:x1 + face_w] = ref_img
     first_motion = first_motion[np.newaxis, :]  # Shape: [h, w, ch]
-
     # Ref 作为第一帧在最前面，现在是 49 帧
     motions = np.concatenate([first_motion, rescale_motions])
     input_video = motions[:max_frame_num]
@@ -265,6 +265,7 @@ if __name__ == "__main__":
     loguru_logger.log('MODEL_DEBUG', f"Shape input_video: {input_video.shape}")
 
     # 读取图像并检测人脸
+    loguru_logger.info("Check the face in reference image")
     face_helper.clean_all()
     face_helper.read_image(np.array(image)[:, :, ::-1])  # 反转后3个通道 RGB->BGR
     # image 为原始图片 crop 和 resize 之后的图片
@@ -272,11 +273,14 @@ if __name__ == "__main__":
     face_helper.align_warp_face()  # 人脸的对齐与变形
     align_face = face_helper.cropped_faces[0]  # 人脸裁剪
     image_face = align_face[:, :, ::-1]  # 拿到人脸，反转通道
+    # save image_face
+    loguru_logger.log('MODEL_DEBUG', f"Shape image_face: {image_face.shape}")
+    Image.fromarray(image_face).save("assets/tmp/image_face.jpg")
 
     input_video = input_video[:max_frame_num]
     motions = np.array(input_video)  # Shape: [H, W, C, F] # 之后就没有用了
 
-    # [F, H, W, C]
+    # [F, H, W, C] -> [1, C, F, H, W]
     input_video = torch.from_numpy(np.array(input_video)).permute(
         [3, 0, 1, 2]).unsqueeze(0)
     loguru_logger.log('MODEL_DEBUG',
