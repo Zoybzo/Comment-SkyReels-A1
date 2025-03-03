@@ -199,8 +199,9 @@ if __name__ == "__main__":
     image = load_image(image=args.image_path)
     loguru_logger.log('MODEL_DEBUG', f"Image: {image.shape}")
     image = processor.crop_and_resize(image, sample_size[0], sample_size[1])
-    loguru_logger.log('MODEL_DEBUG', f"Crop and Resize Image: {image.shape}")
-    assert image.shape == (sample_size[0], sample_size[1], 3)
+    loguru_logger.log('MODEL_DEBUG',
+                      f"Crop and Resize Image: {np.array(image).shape}")
+    assert np.array(image).shape == (sample_size[0], sample_size[1], 3)
     # Shape: [sp0, sp1, 3] / [480,720,3]
 
     # ref image crop face
@@ -220,6 +221,8 @@ if __name__ == "__main__":
     rescale_motions = np.zeros_like(image)[np.newaxis, :].repeat(48,
                                                                  axis=0)  #
     # Shape: [new(48), bs, ch, h, w]
+    loguru_logger.log('MODEL_DEBUG',
+                      f"Rescale Motions: {rescale_motions.shape}")
     for ii in range(rescale_motions.shape[0]):
         rescale_motions[ii][y1:y1 + face_h, x1:x1 + face_w] = out_frames[ii]
     ref_image = cv2.resize(ref_image, (512, 512))
