@@ -192,6 +192,12 @@ if __name__ == "__main__":
     for control_frame in control_frames:
         frame, _, _ = processor.face_crop(control_frame)  # 这里得到的每一帧的大小并不相同
         driving_video_crop.append(frame)
+    Image.fromarray(driving_video_crop[0]).save(
+        "assets/tmp/crop_driving_video_0.jpg")
+    Image.fromarray(driving_video_crop[2]).save(
+        "assets/tmp/crop_driving_video_2.jpg")
+    Image.fromarray(driving_video_crop[-1]).save(
+        "assets/tmp/crop_driving_video_-1.jpg")
     loguru_logger.log('MODEL_DEBUG', f"Frames: {len(driving_video_crop)}")
     # 一般情况下 大小不同
     loguru_logger.log('MODEL_DEBUG', f'Shape 0: {driving_video_crop[0].shape}')
