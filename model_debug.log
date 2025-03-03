@@ -187,3 +187,49 @@
 2025-03-03 09:13:04.841 | MODEL_DEBUG | __main__:<module>:238 - Rescale Motions 0: (480, 720, 3)
 2025-03-03 09:13:04.841 | MODEL_DEBUG | __main__:<module>:240 - Rescale Motions 2: (480, 720, 3)
 2025-03-03 09:13:04.895 | MODEL_DEBUG | __main__:<module>:253 - Dtype of ref_img: uint8
+2025-03-03 09:32:58.258 | MODEL_DEBUG | __main__:customize_loguru_logger:47 - This is a model debug message.
+2025-03-03 09:33:03.019 | MODEL_DEBUG | __main__:parse_video:91 - Control Frames: 48
+2025-03-03 09:33:03.109 | MODEL_DEBUG | __main__:<module>:184 - Frames: 48
+2025-03-03 09:33:03.110 | MODEL_DEBUG | __main__:<module>:185 - Shape 0: (720, 1280, 3)
+2025-03-03 09:33:03.110 | MODEL_DEBUG | __main__:<module>:186 - Shape 2: (720, 1280, 3)
+2025-03-03 09:33:04.959 | MODEL_DEBUG | __main__:<module>:195 - Frames: 48
+2025-03-03 09:33:04.959 | MODEL_DEBUG | __main__:<module>:197 - Shape 0: (251, 251, 3)
+2025-03-03 09:33:04.959 | MODEL_DEBUG | __main__:<module>:198 - Shape 2: (250, 250, 3)
+2025-03-03 09:33:04.959 | MODEL_DEBUG | __main__:<module>:199 - Shape -1: (245, 245, 3)
+2025-03-03 09:33:05.003 | MODEL_DEBUG | __main__:<module>:203 - Image: (720, 1280, 3)
+2025-03-03 09:33:05.033 | MODEL_DEBUG | __main__:<module>:205 - Crop and Resize Image: (480, 720, 3)
+2025-03-03 09:33:05.076 | MODEL_DEBUG | __main__:<module>:212 - Face Crop Image: (307, 307, 3)
+2025-03-03 09:33:09.628 | MODEL_DEBUG | __main__:<module>:219 - Out Frames: 48
+2025-03-03 09:33:09.629 | MODEL_DEBUG | __main__:<module>:220 - Out Frames 0: (307, 307, 3)
+2025-03-03 09:33:09.629 | MODEL_DEBUG | __main__:<module>:221 - Out Frames 2: (307, 307, 3)
+2025-03-03 09:33:09.629 | MODEL_DEBUG | __main__:<module>:222 - Out Frames -1: (307, 307, 3)
+2025-03-03 09:33:09.645 | MODEL_DEBUG | __main__:<module>:234 - Rescale Motions: (48, 480, 720, 3)
+2025-03-03 09:33:09.648 | MODEL_DEBUG | __main__:<module>:238 - Rescale Motions 0: (480, 720, 3)
+2025-03-03 09:33:09.648 | MODEL_DEBUG | __main__:<module>:240 - Rescale Motions 2: (480, 720, 3)
+2025-03-03 09:33:09.718 | MODEL_DEBUG | __main__:<module>:253 - Dtype of ref_img: uint8
+2025-03-03 09:33:09.742 | MODEL_DEBUG | __main__:<module>:264 - len(input_video): 49
+2025-03-03 09:33:09.743 | MODEL_DEBUG | __main__:<module>:265 - Shape input_video: (49, 480, 720, 3)
+2025-03-03 09:33:10.017 | MODEL_DEBUG | __main__:<module>:282 - Permute Shape input_video: torch.Size([1, 3, 49, 480, 720])
+2025-03-03 09:39:45.470 | MODEL_DEBUG | __main__:customize_loguru_logger:47 - This is a model debug message.
+2025-03-03 09:39:49.127 | MODEL_DEBUG | __main__:parse_video:91 - Control Frames: 48
+2025-03-03 09:39:49.157 | MODEL_DEBUG | __main__:<module>:184 - Frames: 48
+2025-03-03 09:39:49.157 | MODEL_DEBUG | __main__:<module>:185 - Shape 0: (720, 1280, 3)
+2025-03-03 09:39:49.157 | MODEL_DEBUG | __main__:<module>:186 - Shape 2: (720, 1280, 3)
+2025-03-03 09:39:51.078 | MODEL_DEBUG | __main__:<module>:195 - Frames: 48
+2025-03-03 09:39:51.078 | MODEL_DEBUG | __main__:<module>:197 - Shape 0: (251, 251, 3)
+2025-03-03 09:39:51.078 | MODEL_DEBUG | __main__:<module>:198 - Shape 2: (250, 250, 3)
+2025-03-03 09:39:51.078 | MODEL_DEBUG | __main__:<module>:199 - Shape -1: (245, 245, 3)
+2025-03-03 09:39:51.104 | MODEL_DEBUG | __main__:<module>:203 - Image: (720, 1280, 3)
+2025-03-03 09:39:51.130 | MODEL_DEBUG | __main__:<module>:205 - Crop and Resize Image: (480, 720, 3)
+2025-03-03 09:39:51.174 | MODEL_DEBUG | __main__:<module>:212 - Face Crop Image: (307, 307, 3)
+2025-03-03 09:39:55.854 | MODEL_DEBUG | __main__:<module>:219 - Out Frames: 48
+2025-03-03 09:39:55.854 | MODEL_DEBUG | __main__:<module>:220 - Out Frames 0: (307, 307, 3)
+2025-03-03 09:39:55.854 | MODEL_DEBUG | __main__:<module>:221 - Out Frames 2: (307, 307, 3)
+2025-03-03 09:39:55.854 | MODEL_DEBUG | __main__:<module>:222 - Out Frames -1: (307, 307, 3)
+2025-03-03 09:39:55.871 | MODEL_DEBUG | __main__:<module>:234 - Rescale Motions: (48, 480, 720, 3)
+2025-03-03 09:39:55.876 | MODEL_DEBUG | __main__:<module>:238 - Rescale Motions 0: (480, 720, 3)
+2025-03-03 09:39:55.876 | MODEL_DEBUG | __main__:<module>:240 - Rescale Motions 2: (480, 720, 3)
+2025-03-03 09:39:56.006 | MODEL_DEBUG | __main__:<module>:253 - Dtype of ref_img: uint8
+2025-03-03 09:39:56.035 | MODEL_DEBUG | __main__:<module>:264 - len(input_video): 49
+2025-03-03 09:39:56.035 | MODEL_DEBUG | __main__:<module>:265 - Shape input_video: (49, 480, 720, 3)
+2025-03-03 09:39:56.195 | MODEL_DEBUG | __main__:<module>:282 - Permute Shape input_video: torch.Size([1, 3, 49, 480, 720])

@@ -320,7 +320,7 @@ if __name__ == "__main__":
         torch_dtype=torch.bfloat16
     )
 
-    pipe.to("cuda")
+    # pipe.to("cuda")
     pipe.enable_model_cpu_offload()
     pipe.vae.enable_tiling()
 
