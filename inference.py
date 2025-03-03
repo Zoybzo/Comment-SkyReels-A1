@@ -210,6 +210,7 @@ if __name__ == "__main__":
     # ref image crop face
     ref_image, x1, y1 = processor.face_crop(np.array(image))
     loguru_logger.log('MODEL_DEBUG', f'Face Crop Image: {ref_image.shape}')
+    Image.fromarray(ref_image).save(f"assets/tmp/crop_ref_image.jpg")
     face_h, face_w, _, = ref_image.shape
     source_image = ref_image  # Shape 不固定，根据图片中人脸的大小而定
     driving_video = driving_video_crop
