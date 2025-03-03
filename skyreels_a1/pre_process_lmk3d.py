@@ -17,6 +17,7 @@ from skyreels_a1.src.smirk_encoder import SmirkEncoder
 from skyreels_a1.src.FLAME.FLAME import FLAME
 from skyreels_a1.src.renderer import Renderer
 from moviepy.editor import ImageSequenceClip
+from loguru import logger as loguru_logger
 
 class FaceAnimationProcessor:
     def __init__(self, device='cuda', checkpoint="pretrained_models/smirk/smirk_encoder.pt"):
@@ -41,6 +42,7 @@ class FaceAnimationProcessor:
         height, width, _ = image.shape
         faces = self.app.get(image) # 人脸检测，返回2D box
         bbox = faces[0]['bbox'] # 这里的0意思是，视频中可能有多个人脸，但是会按照第一个人脸进行crop; 模型本身只能处理单人视频
+        loguru_logger.debug('Test Face Crop: bbox: {}'.format(bbox))
         # w and h of box
         w = bbox[2] - bbox[0] # 右上-左上
         h = bbox[3] - bbox[1] # 

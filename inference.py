@@ -46,7 +46,7 @@ def write_mp4(video_path, samples, fps=12, audio_bitrate="192k"):
 
 def parse_video(driving_video_path, max_frame_num):
     """
-    处理视频帧数，达到目标帧数
+    处理视频帧数，达到目标帧数；复制第一帧；帧数不足时复制最后一帧，过长则截断
     """
     vr = VideoReader(driving_video_path) # decord.NDarray，类似于numpy
     fps = vr.get_avg_fps() # 获取视频帧率
