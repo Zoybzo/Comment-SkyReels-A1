@@ -198,6 +198,19 @@ if __name__ == "__main__":
         "assets/tmp/crop_driving_video_2.jpg")
     Image.fromarray(driving_video_crop[-1]).save(
         "assets/tmp/crop_driving_video_-1.jpg")
+
+    # 3D 信息 ? 得到的图片还是关键点
+    crop_driving_frame_0 = cv2.resize(driving_video_crop[0], (512, 512))
+    crop_driving_frame_0_lmk = lmk_extractor(
+        driving_video_crop[0][:, :, ::-1])  # RGB -> BGR
+    crop_driving_frame_0 = vis.draw_landmarks_v3((512, 512), (
+        driving_video_crop[0].shape[0], driving_video_crop[0].shape[1]),
+                                                 crop_driving_frame_0_lmk[
+                                                     'lmks'].astype(np.float32),
+                                                 normed=True)
+    Image.fromarray(crop_driving_frame_0).save(
+        'assets/tmp/lmk_crop_driving_video_0.jpg')
+
     loguru_logger.log('MODEL_DEBUG', f"Frames: {len(driving_video_crop)}")
     # 一般情况下 大小不同
     loguru_logger.log('MODEL_DEBUG', f'Shape 0: {driving_video_crop[0].shape}')
