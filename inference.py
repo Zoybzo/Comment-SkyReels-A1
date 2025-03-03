@@ -213,7 +213,7 @@ if __name__ == "__main__":
     face_h, face_w, _, = ref_image.shape
     source_image = ref_image  # Shape 不固定，根据图片中人脸的大小而定
     driving_video = driving_video_crop
-    # INFO: 使用 FLAME+mediapipe 处理 2D 视频帧，得到 3D 信息；处理后的 frame 的大小与 ref_image 一致
+    # INFO: 使用 FLAME+mediapipe 预处理视频帧；处理后的 frame 的大小与 ref_image 一致
     out_frames = processor.preprocess_lmk3d(source_image,
                                             driving_video)
     loguru_logger.log('MODEL_DEBUG', f"Out Frames: {len(out_frames)}")
@@ -226,7 +226,7 @@ if __name__ == "__main__":
     Image.fromarray(out_frames[0]).save('assets/tmp/out_frames_0.jpg')
     Image.fromarray(out_frames[2]).save('assets/tmp/out_frames_2.jpg')
 
-    # 生成 48 帧的运动，将处理后的 3D 信息放入到 48 帧中
+    # 生成 48 帧的运动，将处理后的 图片 信息放入到 48 帧中
     loguru_logger.info("Rescale Motions...")
     rescale_motions = np.zeros_like(image)[np.newaxis, :].repeat(48,
                                                                  axis=0)
@@ -240,8 +240,8 @@ if __name__ == "__main__":
     loguru_logger.log('MODEL_DEBUG',
                       f"Rescale Motions 2: {rescale_motions[2].shape}")
     # save rescale_motions[0] as a image
-    Image.fromarray(rescale_motions).save("assets/tmp/rescale_motions_0.jpg")
-    Image.fromarray(rescale_motions).save("assets/tmp/rescale_motions_2.jpg")
+    Image.fromarray(rescale_motions[0]).save("assets/tmp/rescale_motions_0.jpg")
+    Image.fromarray(rescale_motions[2]).save("assets/tmp/rescale_motions_2.jpg")
 
     ref_image = cv2.resize(ref_image, (512, 512))
     ref_lmk = lmk_extractor(ref_image[:, :, ::-1])
