@@ -202,17 +202,17 @@ if __name__ == "__main__":
     # driving video crop face
     driving_video_crop = []
     for control_frame in control_frames:
-        frame, _, _ = processor.face_crop(control_frame)
+        frame, _, _ = processor.face_crop(control_frame)  # 这里得到的每一帧的大小并不相同
         driving_video_crop.append(frame)
 
     image = load_image(image=args.image_path)
     image = processor.crop_and_resize(image, sample_size[0], sample_size[1])
-    # Shape: [480,720,3]
+    # Shape: [sp0, sp1, 3] / [480,720,3]
 
     # ref image crop face
     ref_image, x1, y1 = processor.face_crop(np.array(image))
     face_h, face_w, _, = ref_image.shape
-    source_image = ref_image
+    source_image = ref_image # Shape 不固定，根据图片中人脸的位置而定
     driving_video = driving_video_crop
     out_frames = processor.preprocess_lmk3d(source_image, driving_video)
 

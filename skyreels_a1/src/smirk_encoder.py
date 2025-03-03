@@ -32,6 +32,7 @@ class PoseEncoder(nn.Module):
 
 
     def forward(self, img):
+        # Input Shape: [bs, channel, h, w]
         features = self.encoder(img)[-1]
             
         features = F.adaptive_avg_pool2d(features, (1, 1)).squeeze(-1).squeeze(-1)

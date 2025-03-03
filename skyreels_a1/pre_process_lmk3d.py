@@ -40,24 +40,28 @@ class FaceAnimationProcessor:
 
     def face_crop(self, image):
         """
-        根据人脸位置对帧进行crop
+        根据人脸位置对帧进行crop，返回crop之后的图片与图片的左上角坐标
         """
         height, width, _ = image.shape
         faces = self.app.get(image)  # 人脸检测，返回2D box
         bbox = faces[0][
             'bbox']  # 这里的0意思是，视频中可能有多个人脸，但是会按照第一个人脸进行crop; 模型本身只能处理单人视频
         loguru_logger.log('UNIT_DEBUG', 'Test Face Crop: bbox: {}'.format(bbox))
+        # bbox: [x1, y1, x2, y2]
+        # (x1, y1) 为左上角，(x2, y2)为右下角
         # w and h of box
-        w = bbox[2] - bbox[0]  # 右上-左上
-        h = bbox[3] - bbox[1]  #
-        x1 = max(0, int(bbox[0] - w / 2))
-        x2 = min(width - 1, int(bbox[2] + w / 2))
+        # 右下-左上
+        w = bbox[2] - bbox[0]
+        h = bbox[3] - bbox[1]
+        x1 = max(0, int(bbox[0] - w / 2))  # 向左扩展宽度的一半
+        x2 = min(width - 1, int(bbox[2] + w / 2))  # 向右扩展宽度的一半
         w_new = x2 - x1
-        y_offset = (w_new - h) / 2.
+        y_offset = (w_new - h) / 2.  # 高度的偏移量，使得高度和宽度相等
         y1 = max(0, int(bbox[1] - y_offset))
         y2 = min(height, int(bbox[3] + y_offset))
         x_comp = int(((x2 - x1) - (y2 - y1)) / 2) if (x2 - x1) > (
-                    y2 - y1) else 0
+                y2 - y1) else 0  #
+        # 如果调整后的宽度大于高度，则调整宽度；由于边界的存在，高度的调整可能不能满足需求，所以要二次调整宽度
         x1 += x_comp
         x2 -= x_comp
         image_crop = image[y1:y2, x1:x2]
@@ -131,20 +135,33 @@ class FaceAnimationProcessor:
         return r * theta
 
     def crop_face(self, frame, landmarks, scale=1.0, image_size=224):
+        """
+        计算出 将裁减后的人脸标准化为目标尺寸 的转换矩阵
+        Args:
+            frame: 要处理的人脸图片；实际上并没有被用到
+            landmarks: 人脸关键点信息
+            scale:
+            image_size:
+
+        Returns:
+
+        """
+        # 获取人脸关键点坐标的边界信息
         left = np.min(landmarks[:, 0])
         right = np.max(landmarks[:, 0])
         top = np.min(landmarks[:, 1])
         bottom = np.max(landmarks[:, 1])
-        h, w, _ = frame.shape
-        old_size = (right - left + bottom - top) / 2
+        h, w, _ = frame.shape # 并没有被用到
+        old_size = (right - left + bottom - top) / 2 # 宽高平均值；一半的宽+一半的高
         center = np.array(
-            [right - (right - left) / 2.0, bottom - (bottom - top) / 2.0])
-        size = int(old_size * scale)
+            [right - (right - left) / 2.0, bottom - (bottom - top) / 2.0]) # 人脸关键点的中心坐标
+        size = int(old_size * scale) # 放大/缩小之后的尺寸
         src_pts = np.array([[center[0] - size / 2, center[1] - size / 2],
                             [center[0] - size / 2, center[1] + size / 2],
-                            [center[0] + size / 2, center[1] - size / 2]])
-        DST_PTS = np.array([[0, 0], [0, image_size - 1], [image_size - 1, 0]])
-        tform = estimate_transform('similarity', src_pts, DST_PTS)
+                            [center[0] + size / 2, center[1] - size / 2]]) # 三个点确定一个方形的原始平面
+        DST_PTS = np.array([[0, 0], [0, image_size - 1], [image_size - 1, 0]]) # 目标平面，变成为 224
+        # 通过estimate_transform计算 将裁减后的人脸标准化为目标尺寸 的转换矩阵
+        tform = estimate_transform('similarity', src_pts, DST_PTS) # 提供一种变换
         tform_original = estimate_transform('similarity', src_pts, src_pts)
         return tform, tform_original
 
@@ -168,23 +185,39 @@ class FaceAnimationProcessor:
                 ref_indices]
 
     def process_source_image(self, image_rgb, input_size=224):
-        image_bgr = cv2.cvtColor(image_rgb, cv2.COLOR_RGB2BGR)
+        """
+        处理source_image
+        Args:
+            image_rgb: 要处理的人脸图片/rgb格式
+            input_size:
+
+        Returns:
+
+        """
+        image_bgr = cv2.cvtColor(image_rgb, cv2.COLOR_RGB2BGR)  # 转换格式为 BGR
         mediapipe_utils = MediaPipeUtils()
         kpt_mediapipe, _, _, mediapipe_eye_pose = mediapipe_utils.run_mediapipe(
-            image_bgr)
+            image_bgr) # 获取输入图片中人脸的关键点坐标（包含相对深度）以及适用于FLAME 3D建模的表情、姿态、眼球姿态等系数
+        # kpt_mediapipe：人脸关键点坐标（包含相对深度）
+        # mediapipe_eye_pose：眼球姿态系数
         if kpt_mediapipe is None:
             raise ValueError('Cannot find facial landmarks in the source image')
-        kpt_mediapipe = kpt_mediapipe[..., :2]
+        kpt_mediapipe = kpt_mediapipe[..., :2] # 抛弃了相对深度 # [478, 2]
         tform, _ = self.crop_face(image_rgb, kpt_mediapipe, scale=1.4,
-                                  image_size=input_size)
+                                  image_size=input_size) # image_rgb并没有被用到，根据人脸关键点坐标计算出变换矩阵
+        # 使用变换矩阵将裁减后的人脸转换到目标尺寸
         cropped_image = warp(image_rgb, tform.inverse,
                              output_shape=(input_size, input_size),
                              preserve_range=True).astype(np.uint8)
         cropped_image = torch.tensor(cropped_image).permute(2, 0, 1).unsqueeze(
             0).float() / 255.0
+        # Shape: [bs, channel, h=224, w=224]
         cropped_image = cropped_image.to(self.device)
+
+        # 根据 tf_mobilenetv3_small/large_minimal_100 模型预训练权重编码 Pose、Exp、Shape
         with torch.no_grad():
             source_outputs = self.smirk_encoder(cropped_image)
+        # PoseEncoder：Shape []
         source_outputs['eye_pose_params'] = torch.tensor(mediapipe_eye_pose).to(
             self.device)
         return source_outputs, tform, image_rgb
@@ -253,12 +286,21 @@ class FaceAnimationProcessor:
                 weights_468)
 
     def preprocess_lmk3d(self, source_image=None, driving_image_list=None):
+        """
+
+        Args:
+            source_image: 截取后的人脸图片
+            driving_image_list:
+
+        Returns:
+
+        """
         source_outputs, source_tform, image_original = (
             self.process_source_image(
-            source_image))
+                source_image))
         _, driving_outputs, driving_video_tform, weights_473, weights_468 = (
             self.process_driving_img_list(
-            driving_image_list))
+                driving_image_list))
         driving_outputs_list = []
         source_pose_init = source_outputs['pose_params'].clone()
         driving_outputs_pose = [outputs['pose_params'] for outputs in
