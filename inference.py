@@ -86,10 +86,11 @@ def parse_video(driving_video_path, max_frame_num):
     frame_indices = frame_indices[frame_indices < video_length]
     control_frames = vr.get_batch(frame_indices).asnumpy()[
                      :(max_frame_num - 1)]  # 根据帧索引提取帧,最多max-1个帧
+    loguru_logger.log('MODEL_DEBUG', f"Control Frames: {len(control_frames)}")
     # 为什么max-1？
     # max-1是为了之后可以复制一次第一帧
 
-    out_frames = len(control_frames) - 1  # 实际帧数
+    out_frames = len(control_frames) - 1
     if len(control_frames) < max_frame_num - 1:  # 帧数不足
         video_lenght_add = max_frame_num - len(control_frames) - 1
         control_frames = np.concatenate(([control_frames[0]] * 2,
@@ -197,7 +198,7 @@ if __name__ == "__main__":
                       f'Shape -1: {driving_video_crop[-1].shape}')
 
     image = load_image(image=args.image_path)
-    loguru_logger.log('MODEL_DEBUG', f"Image: {image.shape}")
+    loguru_logger.log('MODEL_DEBUG', f"Image: {np.array(image).shape}")
     image = processor.crop_and_resize(image, sample_size[0], sample_size[1])
     loguru_logger.log('MODEL_DEBUG',
                       f"Crop and Resize Image: {np.array(image).shape}")
