@@ -16,10 +16,10 @@ def test_smirk_encoder():
     loguru_logger.log('UNIT_DEBUG', "Load Pose Encoder")
     pose_encoder = smirk_encoder.pose_encoder
     summary(pose_encoder, (3, 224, 224), device='cuda')
-    loguru_logger.log('UNIT_DEBUG', "Load Pose Encoder")
+    loguru_logger.log('UNIT_DEBUG', "Load Expression Encoder")
     expression_encoder = smirk_encoder.expression_encoder
     summary(expression_encoder, (3, 224, 224), device='cuda')
-    loguru_logger.log('UNIT_DEBUG', "Load Pose Encoder")
+    loguru_logger.log('UNIT_DEBUG', "Load Shape Encoder")
     shape_encoder = smirk_encoder.shape_encoder
     summary(shape_encoder, (3, 224, 224), device='cuda')
 
