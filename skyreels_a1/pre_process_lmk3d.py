@@ -96,6 +96,14 @@ class FaceAnimationProcessor:
             (width, height))  # resize # 等比例缩放图片
 
     def rodrigues_to_matrix(self, pose_params):
+        """
+        将罗德里格斯向量转换为旋转矩阵。
+        Args:
+            pose_params:
+
+        Returns:
+
+        """
         theta = torch.norm(pose_params, dim=-1, keepdim=True)
         r = pose_params / (theta + 1e-8)
         cos_theta = torch.cos(theta)
@@ -114,6 +122,14 @@ class FaceAnimationProcessor:
         return R
 
     def matrix_to_rodrigues(self, R):
+        """
+        将旋转矩阵转换为罗德里格斯向量。
+        Args:
+            R:
+
+        Returns:
+
+        """
         cos_theta = (torch.trace(R[0]) - 1) / 2
         cos_theta = torch.clamp(cos_theta, -1, 1)
         theta = torch.acos(cos_theta)
@@ -151,17 +167,20 @@ class FaceAnimationProcessor:
         right = np.max(landmarks[:, 0])
         top = np.min(landmarks[:, 1])
         bottom = np.max(landmarks[:, 1])
-        h, w, _ = frame.shape # 并没有被用到
-        old_size = (right - left + bottom - top) / 2 # 宽高平均值；一半的宽+一半的高
+        h, w, _ = frame.shape  # 并没有被用到
+        old_size = (right - left + bottom - top) / 2  # 宽高平均值；一半的宽+一半的高
         center = np.array(
-            [right - (right - left) / 2.0, bottom - (bottom - top) / 2.0]) # 人脸关键点的中心坐标
-        size = int(old_size * scale) # 放大/缩小之后的尺寸
+            [right - (right - left) / 2.0,
+             bottom - (bottom - top) / 2.0])  # 人脸关键点的中心坐标
+        size = int(old_size * scale)  # 放大/缩小之后的尺寸
         src_pts = np.array([[center[0] - size / 2, center[1] - size / 2],
                             [center[0] - size / 2, center[1] + size / 2],
-                            [center[0] + size / 2, center[1] - size / 2]]) # 三个点确定一个方形的原始平面
-        DST_PTS = np.array([[0, 0], [0, image_size - 1], [image_size - 1, 0]]) # 目标平面，变成为 224
+                            [center[0] + size / 2,
+                             center[1] - size / 2]])  # 三个点确定一个方形的原始平面
+        DST_PTS = np.array(
+            [[0, 0], [0, image_size - 1], [image_size - 1, 0]])  # 目标平面，变成为 224
         # 通过estimate_transform计算 将裁减后的人脸标准化为目标尺寸 的转换矩阵
-        tform = estimate_transform('similarity', src_pts, DST_PTS) # 提供一种变换
+        tform = estimate_transform('similarity', src_pts, DST_PTS)  # 提供一种变换
         tform_original = estimate_transform('similarity', src_pts, src_pts)
         return tform, tform_original
 
@@ -186,7 +205,11 @@ class FaceAnimationProcessor:
 
     def process_source_image(self, image_rgb, input_size=224):
         """
-        处理source_image
+        处理 source_image，返回 {姿态特征、形状特征、表情特征、眼皮特征、下颌特征、眼球姿态系数}，转换矩阵，原始图片
+
+        使用 mediapipe 获取人像图片的 关键点坐标、表情系数（丢弃）、姿态系数（丢弃）、眼球姿态系数
+        使用 mobilenetv3 获取 姿态特征、形状特征、表情特征、眼皮特征、下颌特征
+
         Args:
             image_rgb: 要处理的人脸图片/rgb格式
             input_size:
@@ -197,14 +220,15 @@ class FaceAnimationProcessor:
         image_bgr = cv2.cvtColor(image_rgb, cv2.COLOR_RGB2BGR)  # 转换格式为 BGR
         mediapipe_utils = MediaPipeUtils()
         kpt_mediapipe, _, _, mediapipe_eye_pose = mediapipe_utils.run_mediapipe(
-            image_bgr) # 获取输入图片中人脸的关键点坐标（包含相对深度）以及适用于FLAME 3D建模的表情、姿态、眼球姿态等系数
+            image_bgr)  # 获取输入图片中人脸的关键点坐标（包含相对深度）以及适用于FLAME 3D建模的表情、姿态、眼球姿态等系数
         # kpt_mediapipe：人脸关键点坐标（包含相对深度）
         # mediapipe_eye_pose：眼球姿态系数
         if kpt_mediapipe is None:
             raise ValueError('Cannot find facial landmarks in the source image')
-        kpt_mediapipe = kpt_mediapipe[..., :2] # 抛弃了相对深度 # [478, 2]
+        kpt_mediapipe = kpt_mediapipe[..., :2]  # 抛弃了相对深度 # [478, 2]
         tform, _ = self.crop_face(image_rgb, kpt_mediapipe, scale=1.4,
-                                  image_size=input_size) # image_rgb并没有被用到，根据人脸关键点坐标计算出变换矩阵
+                                  image_size=input_size)  #
+        # image_rgb并没有被用到，根据人脸关键点坐标计算出变换矩阵
         # 使用变换矩阵将裁减后的人脸转换到目标尺寸
         cropped_image = warp(image_rgb, tform.inverse,
                              output_shape=(input_size, input_size),
@@ -217,9 +241,13 @@ class FaceAnimationProcessor:
         # 根据 tf_mobilenetv3_small/large_minimal_100 模型预训练权重编码 Pose、Exp、Shape
         with torch.no_grad():
             source_outputs = self.smirk_encoder(cropped_image)
-        # PoseEncoder：Shape []
+        # 返回了一些部位的 features
+        # PoseEncoder: pose_params, cam
+        # ShapeEncoder: shape_params
+        # ExpressionEncoder: expression_params, eyelid_params, jaw_params
         source_outputs['eye_pose_params'] = torch.tensor(mediapipe_eye_pose).to(
             self.device)
+        # eye_pose_params 使用 mediapipe 的眼球姿势
         return source_outputs, tform, image_rgb
 
     def smooth_params(self, data, alpha=0.7):
@@ -252,6 +280,7 @@ class FaceAnimationProcessor:
                     'Warning: No face detected in a frame, skipping this frame')
                 continue
             kpt_mediapipe = kpt_mediapipe[..., :2]
+            # index 468 and 473 are left and right iris center points.
             weights_473.append(self.compute_landmark_relation(kpt_mediapipe))
             weights_468.append(
                 self.compute_landmark_relation(kpt_mediapipe, target_idx=468,
@@ -290,38 +319,42 @@ class FaceAnimationProcessor:
 
         Args:
             source_image: 截取后的人脸图片
-            driving_image_list:
+            driving_image_list: 按照人脸截取之后的视频帧列表
 
         Returns:
 
         """
         source_outputs, source_tform, image_original = (
             self.process_source_image(
-                source_image))
+                source_image))  # 获取人脸多种特征、原始尺寸到目标尺寸的转换矩阵、原始图片
         _, driving_outputs, driving_video_tform, weights_473, weights_468 = (
             self.process_driving_img_list(
-                driving_image_list))
+                driving_image_list))  # 与图片的处理基本一致；468和473分别是左右眼睛虹膜的中心点；
         driving_outputs_list = []
         source_pose_init = source_outputs['pose_params'].clone()
         driving_outputs_pose = [outputs['pose_params'] for outputs in
                                 driving_outputs]
-        driving_outputs_pose = self.smooth_params(driving_outputs_pose)
+        driving_outputs_pose = self.smooth_params(
+            driving_outputs_pose)  # 平滑处理：使用上一个相邻点的值加权当前点的值
         for i, outputs in enumerate(driving_outputs):
             outputs['pose_params'] = driving_outputs_pose[i]
             source_outputs['expression_params'] = outputs['expression_params']
             source_outputs['jaw_params'] = outputs['jaw_params']
             source_outputs['eye_pose_params'] = outputs['eye_pose_params']
+            # 罗德里格（Rodrigues）向量 与 旋转矩阵 转换
             source_matrix = self.rodrigues_to_matrix(source_pose_init)
             driving_matrix_0 = self.rodrigues_to_matrix(
                 driving_outputs[0]['pose_params'])
             driving_matrix_i = self.rodrigues_to_matrix(
                 driving_outputs[i]['pose_params'])
+            # 计算源图像和驱动图像之间的相对旋转矩阵，并更新源图像的姿态参数。
             relative_rotation = torch.inverse(
                 driving_matrix_0) @ driving_matrix_i
             new_rotation = source_matrix @ relative_rotation
             source_outputs['pose_params'] = self.matrix_to_rodrigues(
                 new_rotation)
             source_outputs['eyelid_params'] = outputs['eyelid_params']
+            # flame 渲染
             flame_output = self.flame.forward(source_outputs)
             renderer_output = self.renderer.forward(
                 flame_output['vertices'],

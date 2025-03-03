@@ -166,7 +166,76 @@ if __name__ == "__main__":
     siglip = SiglipVisionModel.from_pretrained(siglip_name)
     siglip_normalize = SiglipImageProcessor.from_pretrained(siglip_name)
 
+    # 处理视频帧数
+    loguru_logger.info("Parse Video...")
+    control_frames = parse_video(args.driving_video_path, max_frame_num)
+    loguru_logger.log('MODEL_DEBUG', f"Frames: {len(control_frames)}")
+    loguru_logger.log('MODEL_DEBUG', f"Shape: {control_frames[0].shape}")
+
+    loguru_logger.info('Crop Driving video...')
+    # driving video crop face
+    driving_video_crop = []
+    for control_frame in control_frames:
+        frame, _, _ = processor.face_crop(control_frame)  # 这里得到的每一帧的大小并不相同
+        driving_video_crop.append(frame)
+    loguru_logger.log('MODEL_DEBUG', f"Frames: {len(driving_video_crop)}")
+    loguru_logger.log('MODEL_DEBUG', f'Shape: {driving_video_crop[0].shape}')
+
+    image = load_image(image=args.image_path)
+    image = processor.crop_and_resize(image, sample_size[0], sample_size[1])
+    # Shape: [sp0, sp1, 3] / [480,720,3]
+
+    # ref image crop face
+    ref_image, x1, y1 = processor.face_crop(np.array(image))
+    face_h, face_w, _, = ref_image.shape
+    source_image = ref_image  # Shape 不固定，根据图片中人脸的位置而定
+    driving_video = driving_video_crop
+    # INFO: 使用 FLAME+mediapipe 处理 2D 图片，得到 3D 信息
+    out_frames = processor.preprocess_lmk3d(source_image,
+                                            driving_video)
+
+    rescale_motions = np.zeros_like(image)[np.newaxis, :].repeat(48,
+                                                                 axis=0)  #
+    # Shape: [new(48), bs, ch, h, w]
+    for ii in range(rescale_motions.shape[0]):
+        rescale_motions[ii][y1:y1 + face_h, x1:x1 + face_w] = out_frames[ii]
+    ref_image = cv2.resize(ref_image, (512, 512))
+    ref_lmk = lmk_extractor(ref_image[:, :, ::-1])
+
+    ref_img = vis.draw_landmarks_v3((512, 512), (face_w, face_h),
+                                    ref_lmk['lmks'].astype(np.float32),
+                                    normed=True)
+    # 加上第一帧
+    first_motion = np.zeros_like(np.array(image))
+    first_motion[y1:y1 + face_h, x1:x1 + face_w] = ref_img
+    first_motion = first_motion[np.newaxis, :]
+
+    motions = np.concatenate([first_motion, rescale_motions])
+    input_video = motions[:max_frame_num]
+
+    face_helper.clean_all()
+    face_helper.read_image(np.array(image)[:, :, ::-1])  # 反转后3个通道
+    face_helper.get_face_landmarks_5(only_center_face=True)
+    face_helper.align_warp_face()
+    align_face = face_helper.cropped_faces[0]
+    image_face = align_face[:, :, ::-1]
+
+    input_video = input_video[:max_frame_num]
+    motions = np.array(input_video)
+
+    # [F, H, W, C]
+    input_video = torch.from_numpy(np.array(input_video)).permute(
+        [3, 0, 1, 2]).unsqueeze(0)
+    input_video = input_video / 255
+
+    out_samples = []
+
+    # Load Model
     # skyreels a1 model
+    INFER = False
+    if not INFER:
+        exit(0)
+
     transformer = CogVideoXTransformer3DModel.from_pretrained(
         model_name,
         subfolder="transformer"
@@ -195,60 +264,6 @@ if __name__ == "__main__":
     pipe.to("cuda")
     pipe.enable_model_cpu_offload()
     pipe.vae.enable_tiling()
-
-    # 处理视频帧数
-    control_frames = parse_video(args.driving_video_path, max_frame_num)
-
-    # driving video crop face
-    driving_video_crop = []
-    for control_frame in control_frames:
-        frame, _, _ = processor.face_crop(control_frame)  # 这里得到的每一帧的大小并不相同
-        driving_video_crop.append(frame)
-
-    image = load_image(image=args.image_path)
-    image = processor.crop_and_resize(image, sample_size[0], sample_size[1])
-    # Shape: [sp0, sp1, 3] / [480,720,3]
-
-    # ref image crop face
-    ref_image, x1, y1 = processor.face_crop(np.array(image))
-    face_h, face_w, _, = ref_image.shape
-    source_image = ref_image # Shape 不固定，根据图片中人脸的位置而定
-    driving_video = driving_video_crop
-    out_frames = processor.preprocess_lmk3d(source_image, driving_video)
-
-    rescale_motions = np.zeros_like(image)[np.newaxis, :].repeat(48, axis=0)
-    for ii in range(rescale_motions.shape[0]):
-        rescale_motions[ii][y1:y1 + face_h, x1:x1 + face_w] = out_frames[ii]
-    ref_image = cv2.resize(ref_image, (512, 512))
-    ref_lmk = lmk_extractor(ref_image[:, :, ::-1])
-
-    ref_img = vis.draw_landmarks_v3((512, 512), (face_w, face_h),
-                                    ref_lmk['lmks'].astype(np.float32),
-                                    normed=True)
-
-    first_motion = np.zeros_like(np.array(image))
-    first_motion[y1:y1 + face_h, x1:x1 + face_w] = ref_img
-    first_motion = first_motion[np.newaxis, :]
-
-    motions = np.concatenate([first_motion, rescale_motions])
-    input_video = motions[:max_frame_num]
-
-    face_helper.clean_all()
-    face_helper.read_image(np.array(image)[:, :, ::-1])
-    face_helper.get_face_landmarks_5(only_center_face=True)
-    face_helper.align_warp_face()
-    align_face = face_helper.cropped_faces[0]
-    image_face = align_face[:, :, ::-1]
-
-    input_video = input_video[:max_frame_num]
-    motions = np.array(input_video)
-
-    # [F, H, W, C]
-    input_video = torch.from_numpy(np.array(input_video)).permute(
-        [3, 0, 1, 2]).unsqueeze(0)
-    input_video = input_video / 255
-
-    out_samples = []
 
     with torch.no_grad():
         sample = pipe(
