@@ -223,8 +223,8 @@ if __name__ == "__main__":
     assert out_frames[0].shape == ref_image.shape
     assert out_frames[2].shape == ref_image.shape
     # save out_frames[0] as a image
-    Image.fromarray(out_frames[0]).save(args.output_path)
-    Image.fromarray(out_frames[2]).save(args.output_path)
+    Image.fromarray(out_frames[0]).save('assets/tmp/out_frames_0.jpg')
+    Image.fromarray(out_frames[2]).save('assets/tmp/out_frames_2.jpg')
 
     # 生成 48 帧的运动，将处理后的 3D 信息放入到 48 帧中
     loguru_logger.info("Rescale Motions...")
@@ -240,8 +240,8 @@ if __name__ == "__main__":
     loguru_logger.log('MODEL_DEBUG',
                       f"Rescale Motions 2: {rescale_motions[2].shape}")
     # save rescale_motions[0] as a image
-    Image.fromarray(rescale_motions).save("assets/tmp/rescale_motions_0.png")
-    Image.fromarray(rescale_motions).save("assets/tmp/rescale_motions_2.png")
+    Image.fromarray(rescale_motions).save("assets/tmp/rescale_motions_0.jpg")
+    Image.fromarray(rescale_motions).save("assets/tmp/rescale_motions_2.jpg")
 
     ref_image = cv2.resize(ref_image, (512, 512))
     ref_lmk = lmk_extractor(ref_image[:, :, ::-1])
