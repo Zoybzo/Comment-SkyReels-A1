@@ -15,4 +15,5 @@ def test_video(video_path='assets/driving_video/1.mp4', max_frame_num=49):
         driving_video_crop.append(frame)
 
 if __name__ == '__main__':
+    customize_loguru_logger()
     test_video()
