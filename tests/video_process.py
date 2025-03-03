@@ -1,6 +1,6 @@
 from insightface.app import FaceAnalysis
 from decord import VideoReader
-from inference import parse_video
+from inference import parse_video, customize_loguru_logger
 from skyreels_a1.pre_process_lmk3d import FaceAnimationProcessor
 
 

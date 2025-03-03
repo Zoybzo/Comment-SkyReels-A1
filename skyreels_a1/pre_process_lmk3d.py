@@ -19,8 +19,10 @@ from skyreels_a1.src.renderer import Renderer
 from moviepy.editor import ImageSequenceClip
 from loguru import logger as loguru_logger
 
+
 class FaceAnimationProcessor:
-    def __init__(self, device='cuda', checkpoint="pretrained_models/smirk/smirk_encoder.pt"):
+    def __init__(self, device='cuda',
+                 checkpoint="pretrained_models/smirk/smirk_encoder.pt"):
         self.device = device
         self.app = FaceAnalysis(allowed_modules=['detection'])
         self.app.prepare(ctx_id=0, det_size=(640, 640))
@@ -31,7 +33,8 @@ class FaceAnimationProcessor:
 
     def load_checkpoint(self, checkpoint):
         checkpoint_data = torch.load(checkpoint)
-        checkpoint_encoder = {k.replace('smirk_encoder.', ''): v for k, v in checkpoint_data.items() if 'smirk_encoder' in k}
+        checkpoint_encoder = {k.replace('smirk_encoder.', ''): v for k, v in
+                              checkpoint_data.items() if 'smirk_encoder' in k}
         self.smirk_encoder.load_state_dict(checkpoint_encoder)
         self.smirk_encoder.eval()
 
@@ -40,19 +43,21 @@ class FaceAnimationProcessor:
         根据人脸位置对帧进行crop
         """
         height, width, _ = image.shape
-        faces = self.app.get(image) # 人脸检测，返回2D box
-        bbox = faces[0]['bbox'] # 这里的0意思是，视频中可能有多个人脸，但是会按照第一个人脸进行crop; 模型本身只能处理单人视频
-        loguru_logger.debug('Test Face Crop: bbox: {}'.format(bbox))
+        faces = self.app.get(image)  # 人脸检测，返回2D box
+        bbox = faces[0][
+            'bbox']  # 这里的0意思是，视频中可能有多个人脸，但是会按照第一个人脸进行crop; 模型本身只能处理单人视频
+        loguru_logger.log('UNIT_DEBUG', 'Test Face Crop: bbox: {}'.format(bbox))
         # w and h of box
-        w = bbox[2] - bbox[0] # 右上-左上
-        h = bbox[3] - bbox[1] # 
-        x1 = max(0, int(bbox[0] - w/2))
-        x2 = min(width - 1, int(bbox[2] + w/2))
+        w = bbox[2] - bbox[0]  # 右上-左上
+        h = bbox[3] - bbox[1]  #
+        x1 = max(0, int(bbox[0] - w / 2))
+        x2 = min(width - 1, int(bbox[2] + w / 2))
         w_new = x2 - x1
         y_offset = (w_new - h) / 2.
         y1 = max(0, int(bbox[1] - y_offset))
         y2 = min(height, int(bbox[3] + y_offset))
-        x_comp = int(((x2 - x1) - (y2 - y1)) / 2) if (x2 - x1) > (y2 - y1) else 0
+        x_comp = int(((x2 - x1) - (y2 - y1)) / 2) if (x2 - x1) > (
+                    y2 - y1) else 0
         x1 += x_comp
         x2 -= x_comp
         image_crop = image[y1:y2, x1:x2]
@@ -64,32 +69,35 @@ class FaceAnimationProcessor:
         height, width: default size, 480, 720
         h:w ratio: 2:3
         """
-        image = np.array(image) # height, width, channels
+        image = np.array(image)  # height, width, channels
         image_height, image_width, _ = image.shape
         # compare the ratio with 2:3
         # Fix the height
-        if image_height / image_width < height / width: # the ratio < 2:3
+        if image_height / image_width < height / width:  # the ratio < 2:3
             # crop the width
-            croped_width = int(image_height / height * width)  
+            croped_width = int(image_height / height * width)
             # 计算目标宽度: target_width = image_height / height * width
-            left = (image_width - croped_width) // 2 # 左右两边裁剪
-            image = image[:, left: left+croped_width]
+            left = (image_width - croped_width) // 2  # 左右两边裁剪
+            image = image[:, left: left + croped_width]
         else:
             # pad the width
             # 为什么不用 image_height / height * width ?
             # 未知。或许是防止溢出，当image_height >> height时，可能出现溢出问题
             pad = int((((width / height) * image_height) - image_width) / 2.)
-            padded_image = np.zeros((image_height, image_width + pad * 2, 3), dtype=np.uint8)
-            padded_image[:, pad:pad+image_width] = image # 使用image填充中间区域
+            padded_image = np.zeros((image_height, image_width + pad * 2, 3),
+                                    dtype=np.uint8)
+            padded_image[:, pad:pad + image_width] = image  # 使用image填充中间区域
             image = padded_image
-        return Image.fromarray(image).resize((width, height)) # resize # 等比例缩放图片
+        return Image.fromarray(image).resize(
+            (width, height))  # resize # 等比例缩放图片
 
     def rodrigues_to_matrix(self, pose_params):
         theta = torch.norm(pose_params, dim=-1, keepdim=True)
         r = pose_params / (theta + 1e-8)
         cos_theta = torch.cos(theta)
         sin_theta = torch.sin(theta)
-        r_x = torch.zeros((pose_params.shape[0], 3, 3), device=pose_params.device)
+        r_x = torch.zeros((pose_params.shape[0], 3, 3),
+                          device=pose_params.device)
         r_x[:, 0, 1] = -r[:, 2]
         r_x[:, 0, 2] = r[:, 1]
         r_x[:, 1, 0] = r[:, 2]
@@ -129,16 +137,21 @@ class FaceAnimationProcessor:
         bottom = np.max(landmarks[:, 1])
         h, w, _ = frame.shape
         old_size = (right - left + bottom - top) / 2
-        center = np.array([right - (right - left) / 2.0, bottom - (bottom - top) / 2.0])
+        center = np.array(
+            [right - (right - left) / 2.0, bottom - (bottom - top) / 2.0])
         size = int(old_size * scale)
-        src_pts = np.array([[center[0] - size / 2, center[1] - size / 2], [center[0] - size / 2, center[1] + size / 2],
+        src_pts = np.array([[center[0] - size / 2, center[1] - size / 2],
+                            [center[0] - size / 2, center[1] + size / 2],
                             [center[0] + size / 2, center[1] - size / 2]])
         DST_PTS = np.array([[0, 0], [0, image_size - 1], [image_size - 1, 0]])
         tform = estimate_transform('similarity', src_pts, DST_PTS)
         tform_original = estimate_transform('similarity', src_pts, src_pts)
         return tform, tform_original
 
-    def compute_landmark_relation(self, kpt_mediapipe, target_idx=473, ref_indices=[362, 382, 381, 380, 374, 373, 390, 249, 263, 466, 388, 387, 386, 385, 384, 398]):
+    def compute_landmark_relation(self, kpt_mediapipe, target_idx=473,
+                                  ref_indices=[362, 382, 381, 380, 374, 373,
+                                               390, 249, 263, 466, 388, 387,
+                                               386, 385, 384, 398]):
         target_point = kpt_mediapipe[target_idx]
         ref_points = kpt_mediapipe[ref_indices]
         left_corner = ref_points[0]
@@ -149,30 +162,38 @@ class FaceAnimationProcessor:
         eye_direction = eye_width_vector / eye_width
         eye_vertical = np.array([-eye_direction[1], eye_direction[0]])
         target_vector = target_point - eye_center
-        x_relative = np.dot(target_vector, eye_direction) / (eye_width/2)
-        y_relative = np.dot(target_vector, eye_vertical) / (eye_width/2)
-        return [np.array([x_relative, y_relative]),target_point,ref_points,ref_indices]
+        x_relative = np.dot(target_vector, eye_direction) / (eye_width / 2)
+        y_relative = np.dot(target_vector, eye_vertical) / (eye_width / 2)
+        return [np.array([x_relative, y_relative]), target_point, ref_points,
+                ref_indices]
 
     def process_source_image(self, image_rgb, input_size=224):
         image_bgr = cv2.cvtColor(image_rgb, cv2.COLOR_RGB2BGR)
         mediapipe_utils = MediaPipeUtils()
-        kpt_mediapipe, _, _, mediapipe_eye_pose = mediapipe_utils.run_mediapipe(image_bgr)
+        kpt_mediapipe, _, _, mediapipe_eye_pose = mediapipe_utils.run_mediapipe(
+            image_bgr)
         if kpt_mediapipe is None:
             raise ValueError('Cannot find facial landmarks in the source image')
         kpt_mediapipe = kpt_mediapipe[..., :2]
-        tform, _ = self.crop_face(image_rgb, kpt_mediapipe, scale=1.4, image_size=input_size)
-        cropped_image = warp(image_rgb, tform.inverse, output_shape=(input_size, input_size), preserve_range=True).astype(np.uint8)
-        cropped_image = torch.tensor(cropped_image).permute(2, 0, 1).unsqueeze(0).float() / 255.0
+        tform, _ = self.crop_face(image_rgb, kpt_mediapipe, scale=1.4,
+                                  image_size=input_size)
+        cropped_image = warp(image_rgb, tform.inverse,
+                             output_shape=(input_size, input_size),
+                             preserve_range=True).astype(np.uint8)
+        cropped_image = torch.tensor(cropped_image).permute(2, 0, 1).unsqueeze(
+            0).float() / 255.0
         cropped_image = cropped_image.to(self.device)
         with torch.no_grad():
             source_outputs = self.smirk_encoder(cropped_image)
-        source_outputs['eye_pose_params'] = torch.tensor(mediapipe_eye_pose).to(self.device)
+        source_outputs['eye_pose_params'] = torch.tensor(mediapipe_eye_pose).to(
+            self.device)
         return source_outputs, tform, image_rgb
 
     def smooth_params(self, data, alpha=0.7):
         smoothed_data = [data[0]]
         for i in range(1, len(data)):
-            smoothed_value = alpha * data[i] + (1 - alpha) * smoothed_data[i-1]
+            smoothed_value = alpha * data[i] + (1 - alpha) * smoothed_data[
+                i - 1]
             smoothed_data.append(smoothed_value)
         return smoothed_data
 
@@ -186,39 +207,62 @@ class FaceAnimationProcessor:
         for i, frame in enumerate(img_list):
             frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
             try:
-                kpt_mediapipe, mediapipe_exp, mediapipe_pose, mediapipe_eye_pose = mediapipe_utils.run_mediapipe(frame)
+                (kpt_mediapipe, mediapipe_exp, mediapipe_pose,
+                 mediapipe_eye_pose) = mediapipe_utils.run_mediapipe(
+                    frame)
             except:
-                print('Warning: No face detected in a frame, skipping this frame')
+                print(
+                    'Warning: No face detected in a frame, skipping this frame')
                 continue
             if kpt_mediapipe is None:
-                print('Warning: No face detected in a frame, skipping this frame')
+                print(
+                    'Warning: No face detected in a frame, skipping this frame')
                 continue
             kpt_mediapipe = kpt_mediapipe[..., :2]
             weights_473.append(self.compute_landmark_relation(kpt_mediapipe))
-            weights_468.append(self.compute_landmark_relation(kpt_mediapipe, target_idx=468, ref_indices=[33, 7, 163, 144, 145, 153, 154, 155, 133, 173, 157, 158, 159, 160, 161, 246]))
-            
-            
-            tform, _ = self.crop_face(frame, kpt_mediapipe, scale=1.4, image_size=input_size)
-            cropped_frame = warp(frame, tform.inverse, output_shape=(input_size, input_size), preserve_range=True).astype(np.uint8)
+            weights_468.append(
+                self.compute_landmark_relation(kpt_mediapipe, target_idx=468,
+                                               ref_indices=[33, 7, 163, 144,
+                                                            145, 153, 154, 155,
+                                                            133, 173, 157, 158,
+                                                            159, 160, 161,
+                                                            246]))
+
+            tform, _ = self.crop_face(frame, kpt_mediapipe, scale=1.4,
+                                      image_size=input_size)
+            cropped_frame = warp(frame, tform.inverse,
+                                 output_shape=(input_size, input_size),
+                                 preserve_range=True).astype(np.uint8)
             cropped_frame = cv2.cvtColor(cropped_frame, cv2.COLOR_BGR2RGB)
-            cropped_frame = torch.tensor(cropped_frame).permute(2, 0, 1).unsqueeze(0).float() / 255.0
+            cropped_frame = torch.tensor(cropped_frame).permute(2, 0,
+                                                                1).unsqueeze(
+                0).float() / 255.0
             cropped_frame = cropped_frame.to(self.device)
             with torch.no_grad():
                 outputs = self.smirk_encoder(cropped_frame)
-            outputs['eye_pose_params'] = torch.tensor(mediapipe_eye_pose).to(self.device)
-            outputs['mediapipe_exp'] = torch.tensor(mediapipe_exp).to(self.device)
-            outputs['mediapipe_pose'] = torch.tensor(mediapipe_pose).to(self.device)
+            outputs['eye_pose_params'] = torch.tensor(mediapipe_eye_pose).to(
+                self.device)
+            outputs['mediapipe_exp'] = torch.tensor(mediapipe_exp).to(
+                self.device)
+            outputs['mediapipe_pose'] = torch.tensor(mediapipe_pose).to(
+                self.device)
             driving_frames.append(frame)
             driving_outputs.append(outputs)
             driving_tforms.append(tform)
-        return driving_frames, driving_outputs, driving_tforms, weights_473, weights_468
+        return (driving_frames, driving_outputs, driving_tforms, weights_473,
+                weights_468)
 
     def preprocess_lmk3d(self, source_image=None, driving_image_list=None):
-        source_outputs, source_tform, image_original = self.process_source_image(source_image)
-        _, driving_outputs, driving_video_tform, weights_473, weights_468 = self.process_driving_img_list(driving_image_list)
+        source_outputs, source_tform, image_original = (
+            self.process_source_image(
+            source_image))
+        _, driving_outputs, driving_video_tform, weights_473, weights_468 = (
+            self.process_driving_img_list(
+            driving_image_list))
         driving_outputs_list = []
         source_pose_init = source_outputs['pose_params'].clone()
-        driving_outputs_pose = [outputs['pose_params'] for outputs in driving_outputs]
+        driving_outputs_pose = [outputs['pose_params'] for outputs in
+                                driving_outputs]
         driving_outputs_pose = self.smooth_params(driving_outputs_pose)
         for i, outputs in enumerate(driving_outputs):
             outputs['pose_params'] = driving_outputs_pose[i]
@@ -226,19 +270,26 @@ class FaceAnimationProcessor:
             source_outputs['jaw_params'] = outputs['jaw_params']
             source_outputs['eye_pose_params'] = outputs['eye_pose_params']
             source_matrix = self.rodrigues_to_matrix(source_pose_init)
-            driving_matrix_0 = self.rodrigues_to_matrix(driving_outputs[0]['pose_params'])
-            driving_matrix_i = self.rodrigues_to_matrix(driving_outputs[i]['pose_params'])
-            relative_rotation = torch.inverse(driving_matrix_0) @ driving_matrix_i
+            driving_matrix_0 = self.rodrigues_to_matrix(
+                driving_outputs[0]['pose_params'])
+            driving_matrix_i = self.rodrigues_to_matrix(
+                driving_outputs[i]['pose_params'])
+            relative_rotation = torch.inverse(
+                driving_matrix_0) @ driving_matrix_i
             new_rotation = source_matrix @ relative_rotation
-            source_outputs['pose_params'] = self.matrix_to_rodrigues(new_rotation)
+            source_outputs['pose_params'] = self.matrix_to_rodrigues(
+                new_rotation)
             source_outputs['eyelid_params'] = outputs['eyelid_params']
             flame_output = self.flame.forward(source_outputs)
             renderer_output = self.renderer.forward(
                 flame_output['vertices'],
                 source_outputs['cam'],
-                landmarks_fan=flame_output['landmarks_fan'], source_tform=source_tform,
-                tform_512=None, weights_468=weights_468[i], weights_473=weights_473[i],
-                landmarks_mp=flame_output['landmarks_mp'], shape=image_original.shape)
+                landmarks_fan=flame_output['landmarks_fan'],
+                source_tform=source_tform,
+                tform_512=None, weights_468=weights_468[i],
+                weights_473=weights_473[i],
+                landmarks_mp=flame_output['landmarks_mp'],
+                shape=image_original.shape)
             rendered_img = renderer_output['rendered_img']
             driving_outputs_list.extend(np.copy(rendered_img)[np.newaxis, :])
         return driving_outputs_list
@@ -288,7 +339,8 @@ class FaceAnimationProcessor:
         x1, y1, x2, y2 = global_box
         return image[y1:y2, x1:x2]
 
-    def process_video(self, source_image_path, driving_video_path, output_path, sample_size=[480, 720]):
+    def process_video(self, source_image_path, driving_video_path, output_path,
+                      sample_size=[480, 720]):
         image = load_image(source_image_path)
         image = self.crop_and_resize(image, sample_size[0], sample_size[1])
         ref_image = np.array(image)
@@ -299,13 +351,18 @@ class FaceAnimationProcessor:
         fps = vr.get_avg_fps()
         video_length = len(vr)
         duration = video_length / fps
-        target_times = np.arange(0, duration, 1/12)
+        target_times = np.arange(0, duration, 1 / 12)
         frame_indices = (target_times * fps).astype(np.int32)
         frame_indices = frame_indices[frame_indices < video_length]
         control_frames = vr.get_batch(frame_indices).asnumpy()[:48]
         if len(control_frames) < 49:
             video_lenght_add = 49 - len(control_frames)
-        control_frames = np.concatenate(([control_frames[0]]*2, control_frames[1:len(control_frames)-2], [control_frames[-1]] * video_lenght_add), axis=0)
+        control_frames = np.concatenate(([control_frames[0]] * 2,
+                                         control_frames[
+                                         1:len(control_frames) - 2], [
+                                             control_frames[
+                                                 -1]] * video_lenght_add),
+                                        axis=0)
 
         control_frames_crop = []
         global_box = self.get_global_bbox(control_frames)
@@ -313,28 +370,41 @@ class FaceAnimationProcessor:
             frame = self.face_crop_with_global_box(control_frame, global_box)
             control_frames_crop.append(frame)
 
-        out_frames = self.preprocess_lmk3d(source_image=ref_image, driving_image_list=control_frames_crop)
+        out_frames = self.preprocess_lmk3d(source_image=ref_image,
+                                           driving_image_list=control_frames_crop)
 
         def write_mp4(video_path, samples, fps=14):
             clip = ImageSequenceClip(samples, fps=fps)
-            clip.write_videofile(video_path, codec='libx264', ffmpeg_params=["-pix_fmt", "yuv420p", "-crf", "23", "-preset", "medium"])
+            clip.write_videofile(video_path, codec='libx264',
+                                 ffmpeg_params=["-pix_fmt", "yuv420p", "-crf",
+                                                "23", "-preset", "medium"])
 
         concat_frames = []
         for i in range(len(out_frames)):
             ref_image_concat = ref_image.copy()
             driving_frame = cv2.resize(control_frames_crop[i], (face_w, face_h))
             out_frame = cv2.resize(out_frames[i], (face_w, face_h))
-            concat_frame = np.concatenate([ref_image_concat, driving_frame, out_frame], axis=1)
+            concat_frame = np.concatenate(
+                [ref_image_concat, driving_frame, out_frame], axis=1)
             concat_frame = self.ensure_even_dimensions(concat_frame)
             concat_frames.append(concat_frame)
         write_mp4(output_path, concat_frames, fps=12)
 
+
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Process video and image for face animation.")
-    parser.add_argument('--source_image', type=str, default="assets/ref_images/1.png", help='Path to the source image.')
-    parser.add_argument('--driving_video', type=str, default="assets/driving_video/1.mp4", help='Path to the driving video.')
-    parser.add_argument('--output_path', type=str, default="./output.mp4", help='Path to save the output video.')
+    parser = argparse.ArgumentParser(
+        description="Process video and image for face animation.")
+    parser.add_argument('--source_image', type=str,
+                        default="assets/ref_images/1.png",
+                        help='Path to the source image.')
+    parser.add_argument('--driving_video', type=str,
+                        default="assets/driving_video/1.mp4",
+                        help='Path to the driving video.')
+    parser.add_argument('--output_path', type=str, default="./output.mp4",
+                        help='Path to save the output video.')
     args = parser.parse_args()
 
-    processor = FaceAnimationProcessor(checkpoint='pretrained_models/smirk/SMIRK_em1.pt')
-    processor.process_video(args.source_image, args.driving_video, args.output_path)
+    processor = FaceAnimationProcessor(
+        checkpoint='pretrained_models/smirk/SMIRK_em1.pt')
+    processor.process_video(args.source_image, args.driving_video,
+                            args.output_path)
