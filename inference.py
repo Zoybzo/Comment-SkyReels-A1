@@ -150,8 +150,10 @@ if __name__ == "__main__":
                         help='The path to load the model.')
     parser.add_argument('--infer', type=bool, default=True,
                         help='Inference or not.')
+    parser.add_argument('--cpu', type=bool, default=True, )
     args = parser.parse_args()
     infer = args.infer
+    use_cpu = args.cpu
     # Add logger
     customize_loguru_logger()
 
@@ -162,7 +164,8 @@ if __name__ == "__main__":
     max_frame_num = 49
     weight_dtype = torch.bfloat16
     save_path = args.output_path
-    generator = torch.Generator(device="cuda").manual_seed(seed)
+    generator = torch.Generator(device='cpu').manual_seed(
+        seed) if use_cpu else torch.Generator(device="cuda").manual_seed(seed)
     prefix = args.prefix  # Need change many path; stay here and don't use it
     model_name = "pretrained_models/SkyReels-A1-5B/"
     siglip_name = "pretrained_models/SkyReels-A1-5B/siglip-so400m-patch14-384"
