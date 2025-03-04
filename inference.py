@@ -147,8 +147,11 @@ if __name__ == "__main__":
     parser.add_argument('--output_path', type=str, default="outputs",
                         help='Path to save the output video.')
     parser.add_argument('--prefix', type=str, default="./../Models/",
-                        help='The path to load the model')
+                        help='The path to load the model.')
+    parser.add_argument('--infer', type=bool, default=True,
+                        help='Inference or not.')
     args = parser.parse_args()
+    infer = args.infer
     # Add logger
     customize_loguru_logger()
 
@@ -310,8 +313,7 @@ if __name__ == "__main__":
 
     # Load Model
     # skyreels a1 model
-    INFER = False
-    if not INFER:
+    if not infer:
         exit(0)
 
     transformer = CogVideoXTransformer3DModel.from_pretrained(
