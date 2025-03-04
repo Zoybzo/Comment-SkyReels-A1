@@ -42,9 +42,8 @@ from diffusers.video_processor import VideoProcessor
 from .pipeline_output import CogVideoXPipelineOutput
 from einops import rearrange
 from transformers import CLIPImageProcessor, CLIPVisionModelWithProjection
-from diffusers.pipelines.stable_video_diffusion \
-    import (pipeline_stable_video_diffusion._resize_with_antialiasing) \
-    as _resize_with_antialiasing
+from diffusers.pipelines.stable_video_diffusion. \
+    pipeline_stable_video_diffusion import _resize_with_antialiasing
 from skyreels_a1.models.transformer3d import CogVideoXTransformer3DModel
 from transformers import AutoModelForDepthEstimation, AutoProcessor, \
     SiglipImageProcessor, SiglipVisionModel
