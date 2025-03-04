@@ -3,3 +3,5 @@ __pycache__/
 .gradio/
 outputs/
 .DS_Store
+logs/
+*.log

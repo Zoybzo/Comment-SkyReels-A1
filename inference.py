@@ -40,7 +40,7 @@ def customize_loguru_logger():
     # MODEL DEBUG
     loguru_logger.level("MODEL_DEBUG", no=15, color="<blue>",
                         icon="🤖")  # 测试模型的调试信息
-    loguru_logger.add("model_debug.log",
+    loguru_logger.add("logs/model_debug.log",
                       filter=lambda record: record[
                                                 "level"].name == "MODEL_DEBUG",
                       level="MODEL_DEBUG")
