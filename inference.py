@@ -316,17 +316,17 @@ if __name__ == "__main__":
 
     transformer = CogVideoXTransformer3DModel.from_pretrained(
         model_name,
-        subfolder="transformer"
+        subfolder="transformer", device_map="auto"
     ).to(weight_dtype)
 
     vae = AutoencoderKLCogVideoX.from_pretrained(
         model_name,
-        subfolder="vae"
+        subfolder="vae", device_map="auto"
     ).to(weight_dtype)
 
     lmk_encoder = AutoencoderKLCogVideoX.from_pretrained(
         model_name,
-        subfolder="pose_guider",
+        subfolder="pose_guider", device_map="auto"
     ).to(weight_dtype)
 
     pipe = SkyReelsA1ImagePoseToVideoPipeline.from_pretrained(
@@ -336,7 +336,7 @@ if __name__ == "__main__":
         lmk_encoder=lmk_encoder,
         image_encoder=siglip,
         feature_extractor=siglip_normalize,
-        torch_dtype=torch.bfloat16
+        torch_dtype=torch.bfloat16, device_map="auto"
     )
 
     # pipe.to("cuda")
