@@ -292,6 +292,7 @@ class SkyReelsA1ImagePoseToVideoPipeline(DiffusionPipeline):
             crop_ratio=(1, 1),
             det_model='retinaface_resnet50',
             save_ext='png',
+            device=torch.device('cpu'),
         )
 
         # def _encode_image(self, image, device, num_videos_per_prompt,
