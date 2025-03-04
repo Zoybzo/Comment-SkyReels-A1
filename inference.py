@@ -316,22 +316,26 @@ if __name__ == "__main__":
     if not infer:
         exit(0)
 
+    loguru_logger.info("Loading CogVideoX...")
     transformer = CogVideoXTransformer3DModel.from_pretrained(
         model_name,
         subfolder="transformer",
         # device_map="auto" # CogVideoX 不支持 auto
     ).to(weight_dtype)
 
+    loguru_logger.info("Loading VAE...")
     vae = AutoencoderKLCogVideoX.from_pretrained(
         model_name,
-        subfolder="vae", device_map="auto"
+        subfolder="vae", device_map="balanced"
     ).to(weight_dtype)
 
+    loguru_logger.info("Loading lmk_encoder...")
     lmk_encoder = AutoencoderKLCogVideoX.from_pretrained(
         model_name,
-        subfolder="pose_guider", device_map="auto"
+        subfolder="pose_guider", device_map="balanced"
     ).to(weight_dtype)
 
+    loguru_logger.info("Loading SkyReels...")
     pipe = SkyReelsA1ImagePoseToVideoPipeline.from_pretrained(
         model_name,
         transformer=transformer,
@@ -344,7 +348,7 @@ if __name__ == "__main__":
         device_map="balanced",
     )
 
-    # pipe.to("cuda")
+    pipe.to("cuda")
     pipe.enable_model_cpu_offload()
     pipe.vae.enable_tiling()
 
