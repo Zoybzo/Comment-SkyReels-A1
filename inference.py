@@ -351,7 +351,7 @@ if __name__ == "__main__":
         face_helper=face_helper,
         torch_dtype=torch.bfloat16,
         # device_map="auto",
-        device_map="balanced", load_in_8bit=True,
+        device_map="balanced_low_0", load_in_8bit=True,
     )
     loguru_logger.info("Loaded All !!!")
 
