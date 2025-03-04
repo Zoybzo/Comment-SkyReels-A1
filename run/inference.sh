@@ -13,4 +13,4 @@ fi
 export CUDA_VISIBLE_DEVICES=$CUDA_DEVICE
 
 # 运行 Python 脚本
-python inference.py
+CUDA_LAUNCH_BLOCKING=1 python inference.py
