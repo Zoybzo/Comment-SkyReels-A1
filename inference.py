@@ -363,7 +363,8 @@ if __name__ == "__main__":
         torch_dtype=torch.bfloat16,
         # device_map="auto", # not supported
         # device_map="balanced_low_0", # not supported
-        device_map="balanced",
+        # device_map="balanced",
+        device="cpu",
         # device_map=device_map,
         # load_in_8bit=True, # not supported
     )

@@ -55,6 +55,7 @@ import insightface
 import cv2
 import numpy as np
 from PIL import Image
+from loguru import logger as loguru_logger
 
 logger = logging.get_logger(__name__)  # pylint: disable=invalid-name
 
@@ -292,7 +293,7 @@ class SkyReelsA1ImagePoseToVideoPipeline(DiffusionPipeline):
             crop_ratio=(1, 1),
             det_model='retinaface_resnet50',
             save_ext='png',
-            device=torch.device('cuda:3'),  # 先加载进来再说
+            # device=torch.device('cuda:3'),  # 先加载进来再说
         )
 
         # def _encode_image(self, image, device, num_videos_per_prompt,
@@ -969,6 +970,7 @@ class SkyReelsA1ImagePoseToVideoPipeline(DiffusionPipeline):
         batch_size = 1
 
         device = self._execution_device
+        loguru_logger.log("MODEL_DEBUG", f"current device: {device}")
 
         # 把 face_helper 挪到 cuda 上去
         # self.face_helper
