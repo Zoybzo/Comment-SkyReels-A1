@@ -365,7 +365,8 @@ if __name__ == "__main__":
     loguru_logger.info("Loaded All !!!")
 
     # pipe.to("cuda")
-    pipe.enable_model_cpu_offload()
+    # pipe.enable_model_cpu_offload()
+    # enable_model_cpu_offload 不可以和 device_map 一起使用
     pipe.vae.enable_tiling()
 
     with torch.no_grad():
