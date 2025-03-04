@@ -340,15 +340,6 @@ if __name__ == "__main__":
         load_in_8bit=True,
     ).to(weight_dtype)
 
-    loguru_logger.info("Loading FaceHelper...")
-    face_helper = FaceRestoreHelper(
-        upscale_factor=1,
-        face_size=512,
-        crop_ratio=(1, 1),
-        det_model='retinaface_resnet50',
-        save_ext='png',
-    )
-
     loguru_logger.info("Loading SkyReels...")
     pipe = SkyReelsA1ImagePoseToVideoPipeline.from_pretrained(
         model_name,
