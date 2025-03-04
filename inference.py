@@ -318,7 +318,8 @@ if __name__ == "__main__":
 
     transformer = CogVideoXTransformer3DModel.from_pretrained(
         model_name,
-        subfolder="transformer", device_map="auto"
+        subfolder="transformer",
+        # device_map="auto" # CogVideoX 不支持 auto
     ).to(weight_dtype)
 
     vae = AutoencoderKLCogVideoX.from_pretrained(
