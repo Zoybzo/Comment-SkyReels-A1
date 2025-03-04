@@ -292,7 +292,7 @@ class SkyReelsA1ImagePoseToVideoPipeline(DiffusionPipeline):
             crop_ratio=(1, 1),
             det_model='retinaface_resnet50',
             save_ext='png',
-            device=torch.device('cpu'),
+            device=torch.device('cpu'),  # 先加载进来再说
         )
 
         # def _encode_image(self, image, device, num_videos_per_prompt,
@@ -969,6 +969,9 @@ class SkyReelsA1ImagePoseToVideoPipeline(DiffusionPipeline):
         batch_size = 1
 
         device = self._execution_device
+
+        # 把 face_helper 挪到 cuda 上去
+        self.face_helper.to(device)
 
         # here `guidance_scale` is defined analog to the guidance weight `w`
         # of equation (2)
