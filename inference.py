@@ -341,6 +341,17 @@ if __name__ == "__main__":
     ).to(weight_dtype)
 
     loguru_logger.info("Loading SkyReels...")
+    device_map = {
+        "feature_extractor": "cuda:0",
+        "image_encoder": "cuda:0",
+        "scheduler": "cuda:0",
+        "lmk_encoder": "cuda:1",
+        "transformer": "cuda:1",
+        "vae": "cuda:1",
+        "face_helper": "cuda:2",
+        "text_encoder": "cuda:3",
+        "tokenizer": "cuda:3",
+    }
     pipe = SkyReelsA1ImagePoseToVideoPipeline.from_pretrained(
         model_name,
         transformer=transformer,
@@ -348,11 +359,18 @@ if __name__ == "__main__":
         lmk_encoder=lmk_encoder,
         image_encoder=siglip,
         feature_extractor=siglip_normalize,
-        face_helper=face_helper,
+        # face_helper=face_helper,
         torch_dtype=torch.bfloat16,
-        # device_map="auto",
-        device_map="balanced_low_0", load_in_8bit=True,
+        # device_map="auto", # not supported
+        # device_map="balanced_low_0", # not supported
+        # device_map="balanced",
+        device_map=device_map,
+        # load_in_8bit=True, # not supported
     )
+    # 确保模型组件被正确加载到指定设备
+    for name, module in pipe.named_modules():
+        if name in device_map:
+            module.to(device_map[name])
     loguru_logger.info("Loaded All !!!")
 
     # pipe.to("cuda")
