@@ -347,8 +347,9 @@ if __name__ == "__main__":
         # device_map="auto",
         device_map="balanced", load_in_8bit=True,
     )
+    loguru_logger.info("Loaded All !!!")
 
-    pipe.to("cuda")
+    # pipe.to("cuda")
     pipe.enable_model_cpu_offload()
     pipe.vae.enable_tiling()
 
