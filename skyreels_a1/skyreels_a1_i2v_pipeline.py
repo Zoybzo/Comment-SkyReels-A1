@@ -1068,8 +1068,8 @@ class SkyReelsA1ImagePoseToVideoPipeline(DiffusionPipeline):
                           f"Before: Video Processor Shape: "
                           f"{np.array(image).shape}")
         loguru_logger.log("MODEL_DEBUG",
-                          f"Before: Image Min: {image.min()}, "
-                          f"Max: {image.max()}")
+                          f"Before: Image Min: {np.array(image).min()}, "
+                          f"Max: {np.array(image).max()}")
         image = self.video_processor.preprocess(image, height=height,
                                                 width=width).to(
             device, dtype=image_embeddings.dtype
