@@ -72,7 +72,7 @@ class LMKExtractor():
                 return None
 
         bs_list = detection_result.face_blendshapes
-        if len(bs_list) == 1:
+        if len(bs_list) == 1: # 只能处理单人视频
             bs = bs_list[0]
             bs_values = []
             for index in range(len(bs)):

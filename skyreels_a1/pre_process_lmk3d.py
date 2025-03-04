@@ -44,6 +44,7 @@ class FaceAnimationProcessor:
         """
         height, width, _ = image.shape
         faces = self.app.get(image)  # 人脸检测，返回2D box
+        # 如果没有人脸则 faces 为空列表
         bbox = faces[0][
             'bbox']  # 这里的0意思是，视频中可能有多个人脸，但是会按照第一个人脸进行crop; 模型本身只能处理单人视频
         loguru_logger.log('UNIT_DEBUG', 'Test Face Crop: bbox: {}'.format(bbox))

@@ -349,23 +349,47 @@ class SkyReelsA1ImagePoseToVideoPipeline(DiffusionPipeline):
 
     def _encode_image(self, image, device, num_videos_per_prompt,
                       do_classifier_free_guidance):
+        """
+        Encode Image to Embeddings
+        Args:
+            image:
+            device:
+            num_videos_per_prompt:
+            do_classifier_free_guidance:
+
+        Returns:
+
+        """
         dtype = next(self.image_encoder.parameters()).dtype
 
         imgs = self.feature_extractor.preprocess(images=[image], do_resize=True,
                                                  return_tensors="pt",
                                                  do_convert_rgb=True)
+        loguru_logger.log("MODEL_DEBUG",
+                          f"Feature Extractor: imgs['pixel_values']: "
+                          f"{imgs['pixel_values'].shape}")
         image_embeddings = self.image_encoder(**imgs.to(device=device,
-                                                        dtype=dtype)).last_hidden_state  # torch.Size([2, 729, 1152])
+                                                        dtype=dtype)).last_hidden_state
+        loguru_logger.log("MODEL_DEBUG",
+                          f"Image Encoder: image_embeddings"
+                          f"{image_embeddings.shape}")
+        # torch.Size([2, 729, 1152])
 
         bs_embed, seq_len, _ = image_embeddings.shape
         image_embeddings = image_embeddings.repeat(1, num_videos_per_prompt, 1)
         image_embeddings = image_embeddings.view(
             bs_embed * num_videos_per_prompt, seq_len, -1)
+        loguru_logger.log("MODEL_DEBUG",
+                          f"Repeat to num_videos_per_prompt: "
+                          f"{image_embeddings.shape}")
 
         if do_classifier_free_guidance:
             negative_image_embeddings = torch.zeros_like(image_embeddings)
             image_embeddings = torch.cat(
                 [negative_image_embeddings, image_embeddings], dim=0)
+            loguru_logger.log("MODEL_DEBUG",
+                              f"CFG: Add negative_image_embeddings: "
+                              f"{image_embeddings.shape}")
 
         return image_embeddings
 
@@ -535,7 +559,10 @@ class SkyReelsA1ImagePoseToVideoPipeline(DiffusionPipeline):
                 f"length of the generators."
             )
 
+        # 对shape做调整
+        # F = (F - 1) // temporal + 1; H = H // spatial; W = W // spatial
         num_frames = (num_frames - 1) // self.vae_scale_factor_temporal + 1
+        # 当 temporal == 4 时，num_frames == 13
         shape = (
             batch_size,
             num_frames,
@@ -546,6 +573,7 @@ class SkyReelsA1ImagePoseToVideoPipeline(DiffusionPipeline):
 
         image = image.unsqueeze(2)  # [B, C, F, H, W]
 
+        # vae 编码图片，得到隐变量
         if isinstance(generator, list):
             image_latents = [
                 retrieve_latents(self.vae.encode(image[i].unsqueeze(0)),
@@ -560,7 +588,7 @@ class SkyReelsA1ImagePoseToVideoPipeline(DiffusionPipeline):
                                                                           1, 3,
                                                                           4)
         # [B, F, C, H, W]
-        image_latents = self.vae_scaling_factor_image * image_latents
+        image_latents = self.vae_scaling_factor_image * image_latents  # 调整隐变量的值
 
         padding_shape = (
             batch_size,
@@ -572,7 +600,9 @@ class SkyReelsA1ImagePoseToVideoPipeline(DiffusionPipeline):
         latent_padding = torch.zeros(padding_shape, device=device, dtype=dtype)
 
         image_latents = torch.cat([image_latents, latent_padding], dim=1)
+        # Shape: [B, F, C, H, W]
 
+        # 初始化噪音
         if latents is None:
             latents = randn_tensor(shape, generator=generator, device=device,
                                    dtype=dtype)
@@ -588,13 +618,29 @@ class SkyReelsA1ImagePoseToVideoPipeline(DiffusionPipeline):
             self, mask, masked_image, batch_size, height, width, dtype, device,
             generator, do_classifier_free_guidance
     ):
+        """
+        Encode the masked_image with lmk_encoder
+        Args:
+            mask:
+            masked_image:
+            batch_size:
+            height:
+            width:
+            dtype:
+            device:
+            generator:
+            do_classifier_free_guidance:
+
+        Returns:
+
+        """
         # resize the mask to latents shape as we concatenate the mask to the
         # latents
         # we do that before converting to dtype to avoid breaking in case
         # we're using cpu_offload
         # and half precision
 
-        if mask is not None:
+        if mask is not None:  # Mask is None
             mask = mask.to(device=device, dtype=self.lmk_encoder.dtype)
             bs = 1
             new_mask = []
@@ -983,48 +1029,107 @@ class SkyReelsA1ImagePoseToVideoPipeline(DiffusionPipeline):
         do_classifier_free_guidance = guidance_scale > 1.0
 
         # 3. Encode image prompt
+        loguru_logger.info("***** Encode Image Prompt of Image Face *****")
+        loguru_logger.info("***** Input: image_face *****")
+        loguru_logger.info("***** Output: image embeddings *****")
+
+        loguru_logger.log("MODEL_DEBUG",
+                          f"Before: Image Face Shape: "
+                          f"{np.array(image_face).shape}")
         image_embeddings = self._encode_image(
             Image.fromarray(np.array(image_face)), device,
             num_videos_per_prompt, do_classifier_free_guidance)
         image_embeddings = image_embeddings.type(torch.bfloat16)
+        loguru_logger.log("MODEL_DEBUG",
+                          f"After: Image Embedding Shape: "
+                          f"{image_embeddings.shape}")
 
         # 4. Prepare timesteps
+        loguru_logger.info("***** Retrieve Timesteps *****")
         timesteps, num_inference_steps = retrieve_timesteps(self.scheduler,
                                                             num_inference_steps,
                                                             device, timesteps)
+        # timesteps, num_inference_steps: A tuple where the first element is the
+        #         timestep schedule from the scheduler and the
+        #         second element is the number of inference steps.
+        loguru_logger.log("MODEL_DEBUG",
+                          f"After: Retrieved Timesteps: {timesteps.shape}")
         self._num_timesteps = len(timesteps)
 
         # 5. Prepare latents
+        loguru_logger.info("***** Preprocess Image with Video Processor *****")
+        loguru_logger.info("***** Input: image *****")
+        loguru_logger.info("***** Output: image *****")
+
+        # VideoProcessor 并没有 preprocess 函数
+        # 实际上调用的是 父类 VaeImageProcessor 的 Preprocess
+        # Resize and Norm
+        loguru_logger.log("MODEL_DEBUG",
+                          f"Before: Video Processor Shape: "
+                          f"{np.array(image).shape}")
+        loguru_logger.log("MODEL_DEBUG",
+                          f"Before: Image Min: {image.min()}, "
+                          f"Max: {image.max()}")
         image = self.video_processor.preprocess(image, height=height,
                                                 width=width).to(
             device, dtype=image_embeddings.dtype
         )
+        loguru_logger.log("MODEL_DEBUG",
+                          f"After: Preprocessed Image Shape: "
+                          f"{image.shape}")
+        loguru_logger.log("MODEL_DEBUG",
+                          f"After: Image Min: {image.min()}, Max: "
+                          f"{image.max()}")
 
+        loguru_logger.info("***** Prepare Latents *****")
         latent_channels = self.transformer.config.in_channels // 3
+        loguru_logger.log("MODEL_DEBUG",
+                          f"Before: Latent Channels: {latent_channels}")
         latents, image_latents = self.prepare_latents(
-            image,
-            batch_size * num_videos_per_prompt,
+            image,  # 处理后的参考图片
+            batch_size * num_videos_per_prompt,  # current batch size
             latent_channels,
-            num_frames,
+            num_frames,  # 49
             height,
             width,
             image_embeddings.dtype,
             device,
             generator,
-            latents,
+            latents,  # None
         )
+        loguru_logger.log("MODEL_DEBUG",
+                          f"After: Latents Shape: {latents.shape}")
+        loguru_logger.log("MODEL_DEBUG",
+                          f"After: Image Latents Shape: {image_latents.shape}")
 
+        loguru_logger.info("***** Preprocess Video *****")
+        loguru_logger.info("***** Input: control vidoe *****")
+
+        loguru_logger.log("MODEL_DEBUG",
+                          f"Before: Control Video Shape: "
+                          f"{control_video.shape}")
+        # check min max
+        loguru_logger.log("MODEL_DEBUG",
+                          f"Before: Control Video Min: {control_video.min()}"
+                          f"Max: {control_video.max()}")
         if control_video is not None:
             video_length = control_video.shape[2]
             control_video = self.video_processor.preprocess(
                 rearrange(control_video, "b c f h w -> (b f) c h w"),
-                height=height, width=width)
+                height=height, width=width)  # resize and norm
             control_video = control_video.to(dtype=torch.float32)
             control_video = rearrange(control_video, "(b f) c h w -> b c f h w",
                                       f=video_length)
+            loguru_logger.log("MODEL_DEBUG",
+                              f"After: Control Video Shape: "
+                              f"{control_video.shape}")
+            loguru_logger.log("MODEL_DEBUG",
+                              f"After: Control Video Min: {control_video.min()}"
+                              f"Max: {control_video.max()}")
         else:
             control_video = None
 
+        loguru_logger.info("***** Prepare Control Video Latents *****")
         control_video_latents = self.prepare_control_latents(
             None,
             control_video,
@@ -1036,7 +1141,15 @@ class SkyReelsA1ImagePoseToVideoPipeline(DiffusionPipeline):
             generator,
             do_classifier_free_guidance
         )[1]
+        loguru_logger.log("MODEL_DEBUG",
+                          f"Before: Control Video Shape: "
+                          f"{control_video_latents.shape}")
+        # BCFHW
 
+        # copy the latents if CFG
+        loguru_logger.log("MODEL_DEBUG",
+                          f"Before: CFG and Reshape: "
+                          f"{control_video_latents.shape}")
         control_video_latents_input = (
             torch.cat([
                           control_video_latents] * 2) if
@@ -1044,41 +1157,52 @@ class SkyReelsA1ImagePoseToVideoPipeline(DiffusionPipeline):
         )
         control_latents = rearrange(control_video_latents_input,
                                     "b c f h w -> b f c h w")
+        loguru_logger.log("MODEL_DEBUG",
+                          f"After CFG and Reshape: Control Video Shape: "
+                          f"{control_video_latents.shape}")
 
         # 6. Prepare extra step kwargs. TODO: Logic should ideally just be
         #  moved out of the pipeline
         extra_step_kwargs = self.prepare_extra_step_kwargs(generator, eta)
 
         # 7. Create rotary embeds if required
+        loguru_logger.info("***** Create Rotary Embeds *****")
         image_rotary_emb = (
             self._prepare_rotary_positional_embeddings(height, width,
                                                        latents.size(1), device)
             if self.transformer.config.use_rotary_positional_embeddings
             else None
         )
+        # loguru_logger.log("MODEL_DEBUG",
+        #                   f"Rotary Embeds Shape: {image_rotary_emb.shape}")
 
         # 8. Denoising loop
+        loguru_logger.info("***** Denoising Loop *****")
         num_warmup_steps = max(
             len(timesteps) - num_inference_steps * self.scheduler.order, 0)
 
         with (self.progress_bar(total=num_inference_steps) as progress_bar):
             # for DPM-solver++
             old_pred_original_sample = None
-            for i, t in enumerate(timesteps):
+            for i, t in enumerate(timesteps):  # 时间步
                 if self.interrupt:
                     continue
 
+                # Noise Latents
                 latent_model_input = torch.cat(
                     [latents] * 2) if do_classifier_free_guidance else latents
                 latent_model_input = self.scheduler.scale_model_input(
                     latent_model_input, t)
-
-                latent_image_input = torch.cat([
-                                                   image_latents] * 2) if \
+                # Image Latents
+                latent_image_input = torch.cat([image_latents] * 2) if \
                     do_classifier_free_guidance else image_latents
+                # Final Latents Input
                 latent_model_input = torch.cat(
                     [latent_model_input, control_latents, latent_image_input],
                     dim=2)
+                loguru_logger.log("MODEL_DEBUG",
+                                  f"Model Input Shape: "
+                                  f"{latent_image_input.shape}")
 
                 # broadcast to batch dimension in a way that's compatible
                 # with ONNX/Core ML
@@ -1092,7 +1216,7 @@ class SkyReelsA1ImagePoseToVideoPipeline(DiffusionPipeline):
                     # attention_kwargs=attention_kwargs,
                     return_dict=False,
                 )[0]
-                noise_pred = noise_pred.float()
+                noise_pred = noise_pred.float()  # 当前步的预测噪音
 
                 # perform guidance
                 if use_dynamic_cfg:
@@ -1121,6 +1245,9 @@ class SkyReelsA1ImagePoseToVideoPipeline(DiffusionPipeline):
                         return_dict=False,
                     )
                 latents = latents.to(image_embeddings.dtype)
+                loguru_logger.log("MODEL_DEBUG",
+                                  f"After CogVideoXDPMScheduler: "
+                                  f"{latents.shape}")
 
                 # call the callback, if provided
                 if callback_on_step_end is not None:

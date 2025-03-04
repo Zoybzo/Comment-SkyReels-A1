@@ -271,6 +271,16 @@ if __name__ == "__main__":
     # 3D 信息 ? 得到的图片还是关键点
     ref_image = cv2.resize(ref_image, (512, 512))
     ref_lmk = lmk_extractor(ref_image[:, :, ::-1])  # RGB -> BGR
+    """
+    {
+        "lmks": lmks, # [[x,y,z], [x,y,z]]
+        'lmks3d': lmks3d,
+        "trans_mat": trans_mat,
+        'faces': mp_tris,
+        "bs": bs_values
+    }
+    """
+    # 3D 信息似乎并没有被下方的函数处理
     ref_img = vis.draw_landmarks_v3((512, 512), (face_w, face_h),
                                     ref_lmk['lmks'].astype(np.float32),
                                     normed=True)
@@ -384,9 +394,10 @@ if __name__ == "__main__":
 
     with torch.no_grad():
         sample = pipe(
-            image=image,
-            image_face=image_face,
+            image=image,  # 裁剪图片 [sp0, sp1, C]
+            image_face=image_face,  # 修复后的人脸图片 # [W, H, C]: W=H=512
             control_video=input_video,
+            # 关键点处理后的视频信息 # [1, C, F, H(sp0), W(sp1)]
             prompt="",
             negative_prompt="",
             height=sample_size[0],
@@ -396,8 +407,8 @@ if __name__ == "__main__":
             guidance_scale=guidance_scale,
             num_inference_steps=num_inference_steps,
         )
-        out_samples.extend(sample.frames[0])
-    out_samples = out_samples[2:]
+        out_samples.extend(sample.frames[0])  # 复制了第一帧 # 为什么？
+    out_samples = out_samples[2:]  # 抛弃前两帧 # 为什么？
 
     save_path_name = os.path.basename(args.image_path).split(".")[0] + "-" + \
                      os.path.basename(args.driving_video_path).split(".")[
@@ -414,7 +425,7 @@ if __name__ == "__main__":
     rescale_motions = rescale_motions[1:]
     control_frames = control_frames[1:]
     for q in range(len(out_samples)):
-        frame1 = image
+        frame1 = image  # 参考图片
         frame2 = crop_and_resize(
             Image.fromarray(np.array(control_frames[q])).convert("RGB"),
             target_h, target_w)
