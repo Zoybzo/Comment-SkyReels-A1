@@ -319,20 +319,25 @@ if __name__ == "__main__":
     loguru_logger.info("Loading CogVideoX...")
     transformer = CogVideoXTransformer3DModel.from_pretrained(
         model_name,
-        subfolder="transformer", load_in_8bit=True,
+        subfolder="transformer",
+        load_in_8bit=True,
         # device_map="auto" # CogVideoX 不支持 auto
     ).to(weight_dtype)
 
     loguru_logger.info("Loading VAE...")
     vae = AutoencoderKLCogVideoX.from_pretrained(
         model_name,
-        subfolder="vae", device_map="balanced", load_in_8bit=True,
+        subfolder="vae",
+        # device_map="balanced",
+        load_in_8bit=True,
     ).to(weight_dtype)
 
     loguru_logger.info("Loading lmk_encoder...")
     lmk_encoder = AutoencoderKLCogVideoX.from_pretrained(
         model_name,
-        subfolder="pose_guider", device_map="balanced", load_in_8bit=True,
+        subfolder="pose_guider",
+        # device_map="balanced",
+        load_in_8bit=True,
     ).to(weight_dtype)
 
     loguru_logger.info("Loading SkyReels...")
