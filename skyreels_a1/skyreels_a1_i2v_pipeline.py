@@ -246,6 +246,7 @@ class SkyReelsA1ImagePoseToVideoPipeline(DiffusionPipeline):
             scheduler: Union[CogVideoXDDIMScheduler, CogVideoXDPMScheduler],
             image_encoder: SiglipVisionModel,
             feature_extractor: SiglipImageProcessor,
+            face_helper: FaceRestoreHelper,
     ):
         super().__init__()
 
@@ -283,13 +284,7 @@ class SkyReelsA1ImagePoseToVideoPipeline(DiffusionPipeline):
         self.image_processor = VaeImageProcessor(
             vae_scale_factor=self.vae_scale_factor)
 
-        self.face_helper = FaceRestoreHelper(
-            upscale_factor=1,
-            face_size=512,
-            crop_ratio=(1, 1),
-            det_model='retinaface_resnet50',
-            save_ext='png',
-        )
+        self.face_helper = face_helper
 
         # def _encode_image(self, image, device, num_videos_per_prompt,
         # do_classifier_free_guidance):
