@@ -339,7 +339,9 @@ if __name__ == "__main__":
         lmk_encoder=lmk_encoder,
         image_encoder=siglip,
         feature_extractor=siglip_normalize,
-        torch_dtype=torch.bfloat16, device_map="auto"
+        torch_dtype=torch.bfloat16,
+        # device_map="auto",
+        device_map="balanced",
     )
 
     # pipe.to("cuda")
