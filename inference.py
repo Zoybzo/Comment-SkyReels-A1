@@ -90,7 +90,7 @@ def parse_video(driving_video_path, max_frame_num):
                      :(max_frame_num - 1)]  # 根据帧索引提取帧,最多max-1个帧
     loguru_logger.log('MODEL_DEBUG', f"Control Frames: {len(control_frames)}")
     # 为什么max-1？
-    # max-1是为了之后可以复制一次第一帧
+    # max-1是为了之后可以使用参考图片作为第一帧
 
     out_frames = len(control_frames) - 1
     if len(control_frames) < max_frame_num - 1:  # 帧数不足
@@ -198,6 +198,7 @@ if __name__ == "__main__":
     for control_frame in control_frames:
         frame, _, _ = processor.face_crop(control_frame)  # 这里得到的每一帧的大小并不相同
         driving_video_crop.append(frame)
+    # Save Image
     Image.fromarray(driving_video_crop[0]).save(
         "assets/tmp/crop_driving_video_0.jpg")
     Image.fromarray(driving_video_crop[2]).save(
@@ -211,7 +212,7 @@ if __name__ == "__main__":
     loguru_logger.log('MODEL_DEBUG',
                       f'Shape -1: {driving_video_crop[-1].shape}')
 
-    # Check the crop driving image lmk
+    # 这一部分非原始代码，仅为测试使用：Check the crop driving image lmk
     crop_driving_frame_0 = cv2.resize(driving_video_crop[0], (512, 512))
     crop_driving_frame_0_lmk = lmk_extractor(
         driving_video_crop[0][:, :, ::-1])  # RGB -> BGR
@@ -223,6 +224,7 @@ if __name__ == "__main__":
     Image.fromarray(crop_driving_frame_0).save(
         'assets/tmp/lmk_crop_driving_video_0.jpg')
 
+    # 裁剪参考图片
     image = load_image(image=args.image_path)
     loguru_logger.log('MODEL_DEBUG', f"Image: {np.array(image).shape}")
     image = processor.crop_and_resize(image, sample_size[0], sample_size[1])
@@ -280,7 +282,8 @@ if __name__ == "__main__":
         "bs": bs_values
     }
     """
-    # 3D 信息似乎并没有被下方的函数处理
+    # 参考图片的 3D 信息并没有被下方的函数处理，z轴在下方函数中全部变成1了
+    # 画图
     ref_img = vis.draw_landmarks_v3((512, 512), (face_w, face_h),
                                     ref_lmk['lmks'].astype(np.float32),
                                     normed=True)

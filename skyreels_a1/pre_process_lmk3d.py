@@ -226,7 +226,7 @@ class FaceAnimationProcessor:
         # mediapipe_eye_pose：眼球姿态系数
         if kpt_mediapipe is None:
             raise ValueError('Cannot find facial landmarks in the source image')
-        kpt_mediapipe = kpt_mediapipe[..., :2]  # 抛弃了相对深度 # [478, 2]
+        kpt_mediapipe = kpt_mediapipe[..., :2]  # INFO: 这里抛弃了相对深度 # [478, 2]
         tform, _ = self.crop_face(image_rgb, kpt_mediapipe, scale=1.4,
                                   image_size=input_size)  #
         # image_rgb并没有被用到，根据人脸关键点坐标计算出变换矩阵
