@@ -13,4 +13,4 @@ fi
 export CUDA_VISIBLE_DEVICES=$CUDA_DEVICE
 
 # 运行 Python 脚本
-TORCH_USE_CUDA_DSA=1 CUDA_LAUNCH_BLOCKING=1 python inference.py
+TORCH_USE_CUDA_DSA=1 CUDA_LAUNCH_BLOCKING=1 nohup python inference.py > your_log.log 2>&1 &

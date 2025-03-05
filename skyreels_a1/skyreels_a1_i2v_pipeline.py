@@ -365,6 +365,7 @@ class SkyReelsA1ImagePoseToVideoPipeline(DiffusionPipeline):
         imgs = self.feature_extractor.preprocess(images=[image], do_resize=True,
                                                  return_tensors="pt",
                                                  do_convert_rgb=True)
+        # [bs, ch, 384, 384]
         loguru_logger.log("MODEL_DEBUG",
                           f"Feature Extractor: imgs['pixel_values']: "
                           f"{imgs['pixel_values'].shape}")
@@ -828,8 +829,8 @@ class SkyReelsA1ImagePoseToVideoPipeline(DiffusionPipeline):
     @replace_example_docstring(EXAMPLE_DOC_STRING)
     def __call__(
             self,
-            image: PipelineImageInput,
-            image_face: PipelineImageInput,
+            image: PipelineImageInput,  # 裁剪后的原始图片
+            image_face: PipelineImageInput,  # 人脸图片
             video: Union[torch.FloatTensor] = None,
             control_video: Union[torch.FloatTensor] = None,
             prompt: Optional[Union[str, List[str]]] = None,
@@ -1081,7 +1082,7 @@ class SkyReelsA1ImagePoseToVideoPipeline(DiffusionPipeline):
                           f"After: Image Min: {image.min()}, Max: "
                           f"{image.max()}")
 
-        loguru_logger.info("***** Prepare Latents *****")
+        loguru_logger.info("***** Prepare Latents with Image *****")
         latent_channels = self.transformer.config.in_channels // 3
         loguru_logger.log("MODEL_DEBUG",
                           f"Before: Latent Channels: {latent_channels}")
@@ -1158,8 +1159,8 @@ class SkyReelsA1ImagePoseToVideoPipeline(DiffusionPipeline):
         control_latents = rearrange(control_video_latents_input,
                                     "b c f h w -> b f c h w")
         loguru_logger.log("MODEL_DEBUG",
-                          f"After CFG and Reshape: Control Video Shape: "
-                          f"{control_video_latents.shape}")
+                          f"After CFG and Reshape: Control Latents Shape: "
+                          f"{control_latents.shape}")
 
         # 6. Prepare extra step kwargs. TODO: Logic should ideally just be
         #  moved out of the pipeline
@@ -1196,13 +1197,13 @@ class SkyReelsA1ImagePoseToVideoPipeline(DiffusionPipeline):
                 # Image Latents
                 latent_image_input = torch.cat([image_latents] * 2) if \
                     do_classifier_free_guidance else image_latents
-                # Final Latents Input
+                # Final Latents Input: Latents, Video Latents, Image Latents
                 latent_model_input = torch.cat(
                     [latent_model_input, control_latents, latent_image_input],
                     dim=2)
                 loguru_logger.log("MODEL_DEBUG",
                                   f"Model Input Shape: "
-                                  f"{latent_image_input.shape}")
+                                  f"{latent_model_input.shape}")
 
                 # broadcast to batch dimension in a way that's compatible
                 # with ONNX/Core ML
