@@ -1,7 +1,7 @@
 pretrained_models/
 __pycache__/
 .gradio/
-outputs/
+# outputs/
 .DS_Store
 logs/
 *.log
