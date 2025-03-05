@@ -139,7 +139,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="Process video and image for face animation.")
     parser.add_argument('--image_path', type=str,
-                        default="assets/ref_images/1.png",
+                        default="assets/ref_images/21.JPG",
                         help='Path to the source image.')
     parser.add_argument('--driving_video_path', type=str,
                         default="assets/driving_video/1.mp4",

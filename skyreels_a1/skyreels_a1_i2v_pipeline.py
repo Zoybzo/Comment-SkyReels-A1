@@ -1265,7 +1265,8 @@ class SkyReelsA1ImagePoseToVideoPipeline(DiffusionPipeline):
                     progress_bar.update()
 
         if not output_type == "latent":
-            video = self.decode_latents(latents)
+            video = self.decode_latents(latents) # decode from latents to video
+            # shape: [B, C, F, H, W]
             video = self.video_processor.postprocess_video(video=video,
                                                            output_type=output_type)
         else:
